@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% from "macros/ui.html" import icono, kpi, filtros_analisis, grafico, badge %}
+{% block titulo %}{{ finca.nombre }}{% endblock %}
+{% block head %}<script src="{{ url_for('static', filename='vendor/chart.umd.min.js') }}"></script>{% endblock %}
+{% block contenido %}
+{% set k = datos.kpis %}
+<div class="cabecera-pagina">
+  <div>
+    <p class="miga"><a href="{{ url_for('crud.listar', key='fincas') }}">Fincas</a></p>
+    <h1>{{ icono('finca') }} {{ finca.nombre }}</h1>
+    <p class="subtitulo">{{ finca.ubicacion or '' }}{% if finca.tipo_suelo %} · Suelo {{ finca.tipo_suelo }}{% endif %}{% if finca.responsable %} · Responsable: {{ finca.responsable.nombre }}{% endif %} · {{ descripcion }}</p>
+  </div>
+  <div class="cabecera-acciones">
+    {% if puede('fincas', 'editar') %}<a class="btn" href="{{ url_for('crud.editar', key='fincas', id=finca.id) }}">{{ icono('editar') }} Editar finca</a>{% endif %}
+    <a class="btn" href="{{ url_for('mapa.index', finca=finca.id) }}">{{ icono('mapa') }} Ver en el mapa</a>
+    <a class="btn" href="{{ url_for('rentabilidad.index', finca=finca.id, campana=f.campana or '') }}">{{ icono('rentabilidad') }} Rentabilidad</a>
+    {% if puede('siembras', 'crear') %}<a class="btn btn-primario" href="{{ url_for('crud.nuevo', key='siembras', finca_id=finca.id) }}">{{ icono('mas') }} Siembra</a>{% endif %}
+  </div>
+</div>
+
+{{ filtros_analisis(url_for('fincas.dashboard', finca_id=finca.id), f, opciones, descripcion) }}
+
+<div class="kpis">
+  {{ kpi('Hectáreas', finca.superficie_total|num ~ ' ha', finca.superficie_cultivable|num ~ ' ha cultivables', icono_nombre='finca') }}
+  {{ kpi('Superficie sembrada', k.cultivada|num ~ ' ha', k.libre|num ~ ' ha libres', icono_nombre='siembra') }}
+  {{ kpi('Producción real', k.toneladas|num ~ ' t', 'Comercializable', icono_nombre='cosecha') }}
+  {{ kpi('Ingresos', k.ingresos|moneda, None, icono_nombre='ingreso') }}
+  {{ kpi('Gastos', k.costos|moneda, None, icono_nombre='gasto') }}
+  {{ kpi('Ganancia', k.ganancia|moneda, ('Margen ' ~ (k.margen|pct)) if k.margen is not none else None, 'kpi-destacado' if k.ganancia >= 0 else 'kpi-negativo', 'rentabilidad') }}
+  {{ kpi('Empleados', datos.empleados|length, 'Mano de obra del mes: ' ~ (datos.mano_obra_mes|moneda), icono_nombre='personas') }}
+</div>
+
+<div class="grilla-3">
+  <section class="tarjeta">
+    <h2>{{ icono('cultivo') }} Cultivos actuales</h2>
+    {% for s in datos.siembras %}
+      <ul class="lista-simple"><li><span>{{ s.cultivo.nombre }}{% if s.lote %} · {{ s.lote.nombre }}{% endif %}<br><small>Sembrado {{ s.fecha_siembra|fecha }} · {{ s.variedad or '' }}</small></span><strong>{{ s.superficie|num }} ha</strong></li></ul>
+    {% else %}<p class="vacio-texto">Sin siembras en curso.</p>{% endfor %}
+    {% if datos.estimada %}
+      <h3>Producción estimada</h3>
+      <ul class="lista-simple">{% for c, v, u in datos.estimada %}<li><span>{{ c }}</span><strong>{{ v|num(0) }} {{ u }}</strong></li>{% endfor %}</ul>
+    {% endif %}
+  </section>
+  <section class="tarjeta">
+    <h2>{{ icono('cosecha') }} Próxima cosecha</h2>
+    {% for s in datos.proximas[:4] %}
+      <ul class="lista-simple"><li><span>{{ s.cultivo.nombre }}{% if s.lote %} · {{ s.lote.nombre }}{% endif %}</span><strong>{{ s.fecha_cosecha_estimada|fecha }}</strong></li></ul>
+    {% else %}<p class="vacio-texto">Sin fechas estimadas.</p>{% endfor %}
+    <h2 style="margin-top:1rem">{{ icono('tarea') }} Trabajos pendientes</h2>
+    <ul class="lista-simple">
+      {% for a in datos.pendientes %}<li><a href="{{ url_for('crud.detalle', key='actividades', id=a.id) }}">{{ a.tipo|replace('_', ' ')|capitalize }} {{ a.descripcion or '' }}</a><small>{{ a.fecha|fecha }}</small></li>{% endfor %}
+      {% for t in datos.tareas %}<li><a href="{{ url_for('crud.detalle', key='alertas', id=t.id) }}">{{ t.titulo }}</a><small>{{ t.fecha|fecha }}</small></li>{% endfor %}
+    </ul>
+    {% if not datos.pendientes and not datos.tareas %}<p class="vacio-texto">Nada pendiente.</p>{% endif %}
+  </section>
+  <section class="tarjeta">
+    <h2>{{ icono('personas') }} Empleados de la finca</h2>
+    <ul class="lista-simple">{% for e in datos.empleados %}<li><a href="{{ url_for('crud.detalle', key='empleados', id=e.id) }}">{{ e.nombre_completo }}</a><small>{{ e.tipo|capitalize }}</small></li>{% else %}<li class="vacio-texto">Sin empleados asignados.</li>{% endfor %}</ul>
+  </section>
+</div>
+
+<section class="tarjeta">
+  <h2>{{ icono('lotes') }} Lotes</h2>
+  <div class="tabla-contenedor"><table class="tabla tabla-responsive">
+    <thead><tr><th>Lote</th><th class="num">Superficie</th><th>Cultivo actual</th><th>Siembra</th><th>Cosecha estimada</th></tr></thead>
+    <tbody>{% for l in datos.lotes %}
+      <tr data-href="{{ url_for('crud.detalle', key='lotes', id=l.lote.id) }}"><td data-label="Lote">{{ l.lote.nombre }}</td><td data-label="Superficie" class="num">{{ l.lote.superficie|num }} ha</td>
+        <td data-label="Cultivo">{{ l.siembra.cultivo.nombre if l.siembra else 'Libre' }}</td>
+        <td data-label="Siembra">{{ l.siembra.fecha_siembra|fecha if l.siembra else '—' }}</td>
+        <td data-label="Cosecha est.">{{ l.siembra.fecha_cosecha_estimada|fecha if l.siembra else '—' }}</td></tr>
+    {% else %}<tr><td colspan="5" class="vacio-texto">La finca no tiene lotes cargados.</td></tr>{% endfor %}</tbody>
+  </table></div>
+</section>
+
+<section class="tarjeta">
+  <h2>{{ icono('rentabilidad') }} Resultado por cultivo</h2>
+  <div class="tabla-contenedor"><table class="tabla tabla-responsive">
+    <thead><tr><th>Cultivo</th><th class="num">Ha</th><th class="num">Producción</th><th class="num">Ingresos</th><th class="num">Costos</th><th class="num">Ganancia</th><th class="num">Ganancia/ha</th></tr></thead>
+    <tbody>{% for r in datos.rent_cultivo %}
+      <tr class="{{ 'fila-sin-asignar' if r.sin_asignar }}"><td data-label="Cultivo">{{ r.nombre }}</td><td data-label="Ha" class="num">{{ r.superficie|num }}</td>
+        <td data-label="Producción" class="num">{{ (r.comercializable|num ~ ' ' ~ r.unidad) if r.comercializable else '—' }}</td>
+        <td data-label="Ingresos" class="num">{{ r.ingresos|moneda }}</td><td data-label="Costos" class="num">{{ r.costos|moneda }}</td>
+        <td data-label="Ganancia" class="num {{ 'negativo' if r.ganancia < 0 }}">{{ r.ganancia|moneda }}</td><td data-label="Ganancia/ha" class="num">{{ r.ganancia_ha|moneda }}</td></tr>
+    {% else %}<tr><td colspan="7" class="vacio-texto">Sin datos en el período.</td></tr>{% endfor %}</tbody>
+  </table></div>
+</section>
+
+<div class="graficos">
+  {{ grafico('ingresos_mes', datos.graficos.ingresos_mes, 'Ingresos y gastos por mes') }}
+  {{ grafico('gastos_categoria', datos.graficos.gastos_categoria, 'Gastos por categoría') }}
+</div>
+{% endblock %}

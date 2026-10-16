@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% from "macros/ui.html" import icono, campo_form %}
+{% block titulo %}{{ ('Editar ' ~ modulo.singular|lower) if obj else modulo.nuevo_texto }}{% endblock %}
+{% block contenido %}
+<div class="cabecera-pagina">
+  <h1>{{ icono(modulo.icono) }} {{ ('Editar ' ~ modulo.singular|lower) if obj else modulo.nuevo_texto }}</h1>
+  <a class="btn" href="{{ url_for('crud.detalle', key=modulo.key, id=obj.id) if obj and not modulo.detalle_url else url_for('crud.listar', key=modulo.key) }}">{{ icono('izq') }} Volver</a>
+</div>
+
+{% if errores.get('__general__') %}<div class="mensaje mensaje-error">{{ errores['__general__'] }}</div>{% elif errores %}
+<div class="mensaje mensaje-error">Revisá los datos marcados en rojo.</div>{% endif %}
+
+<form method="post" class="tarjeta form" novalidate data-form-crud="{{ modulo.key }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="form-grid">
+    {% for item in campos if not item.c.seccion %}
+      {{ campo_form(item, valores, errores) }}
+    {% endfor %}
+  </div>
+  {% set secciones = [] %}
+  {% for item in campos if item.c.seccion and item.c.seccion not in secciones %}{% set _ = secciones.append(item.c.seccion) %}{% endfor %}
+  {% for sec in secciones %}
+    <details class="seccion-form" {% if errores or obj %}open{% endif %}>
+      <summary>{{ sec }}</summary>
+      <div class="form-grid">
+        {% for item in campos if item.c.seccion == sec %}{{ campo_form(item, valores, errores) }}{% endfor %}
+      </div>
+    </details>
+  {% endfor %}
+  <div class="form-acciones">
+    <button type="submit" class="btn btn-primario btn-grande">{{ icono('check') }} Guardar</button>
+    {% if not obj %}<button type="submit" class="btn btn-grande" name="_accion" value="otro">Guardar y cargar otro</button>{% endif %}
+  </div>
+</form>
+{% endblock %}

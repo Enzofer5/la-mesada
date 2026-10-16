@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% from "macros/ui.html" import icono %}
+{% block titulo %}{{ 'Editar usuario' if usuario else 'Nuevo usuario' }}{% endblock %}
+{% block contenido %}
+{% set v = valores or {} %}
+<div class="cabecera-pagina"><h1>{{ icono('personas') }} {{ 'Editar usuario' if usuario else 'Nuevo usuario' }}</h1>
+  <a class="btn" href="{{ url_for('configuracion.usuarios') }}">{{ icono('izq') }} Volver</a></div>
+<form method="post" class="tarjeta form" autocomplete="off">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="form-grid">
+    <div class="campo {{ 'con-error' if errores.nombre }}"><label>Nombre <b class="req">*</b></label><input type="text" name="nombre" maxlength="100" required value="{{ v.get('nombre', usuario.nombre if usuario else '') }}">{% if errores.nombre %}<p class="error-campo">{{ errores.nombre }}</p>{% endif %}</div>
+    <div class="campo {{ 'con-error' if errores.email }}"><label>Email (usuario) <b class="req">*</b></label><input type="email" name="email" required value="{{ v.get('email', usuario.email if usuario else '') }}">{% if errores.email %}<p class="error-campo">{{ errores.email }}</p>{% endif %}</div>
+    <div class="campo {{ 'con-error' if errores.rol_id }}"><label>Rol <b class="req">*</b></label>
+      <select name="rol_id" required><option value="">— Elegir —</option>{% for r in roles %}<option value="{{ r.id }}" {% if v.get('rol_id', usuario.rol_id if usuario else '')|string == r.id|string %}selected{% endif %}>{{ r.nombre }}</option>{% endfor %}</select>
+      {% if errores.rol_id %}<p class="error-campo">{{ errores.rol_id }}</p>{% endif %}</div>
+    <div class="campo {{ 'con-error' if errores.clave }}"><label>{{ 'Nueva contraseña (dejar vacío para no cambiarla)' if usuario else 'Contraseña *' }}</label><input type="password" name="clave" autocomplete="new-password">
+      {% if errores.clave %}<p class="error-campo">{{ errores.clave }}</p>{% endif %}</div>
+    <div class="campo campo-completo"><label>Fincas asignadas (encargados)</label>
+      <div class="checks-fincas">{% set sel = v.getlist('fincas') if v.getlist is defined else (usuario.fincas|map(attribute='id')|map('string')|list if usuario else []) %}
+        {% for fi in fincas %}<label class="check"><input type="checkbox" name="fincas" value="{{ fi.id }}" {% if fi.id|string in sel %}checked{% endif %}> <span>{{ fi.nombre }}</span></label>{% endfor %}</div>
+      <p class="ayuda">El propietario ve todas las fincas aunque no se marque ninguna.</p></div>
+    <label class="check"><input type="checkbox" name="activo" value="1" {% if (v.get('activo') if valores else (usuario.activo if usuario else True)) %}checked{% endif %}> <span>Usuario activo</span></label>
+  </div>
+  <div class="form-acciones"><button class="btn btn-primario btn-grande" type="submit">{{ icono('check') }} Guardar</button></div>
+</form>
+{% endblock %}

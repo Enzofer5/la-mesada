@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% from "macros/ui.html" import icono, kpi %}
+{% block titulo %}Mi panel{% endblock %}
+{% block contenido %}
+<div class="cabecera-pagina"><div><h1>{{ icono('inicio') }} Hola, {{ current_user.nombre.split(' ')[0] }}</h1>
+  {% if empleado %}<p class="subtitulo">{{ empleado.nombre_completo }} · {{ empleado.tipo|capitalize }}{% if empleado.finca %} · {{ empleado.finca.nombre }}{% endif %}</p>{% endif %}</div></div>
+{% if not empleado %}
+  <div class="tarjeta vacio"><p>Tu usuario todavía no está vinculado a un empleado. Pedile al propietario que lo vincule desde Empleados.</p></div>
+{% else %}
+<div class="kpis">
+  {{ kpi('Trabajado', trabajado|moneda, 'Total de trabajos registrados', icono_nombre='trabajo') }}
+  {{ kpi('Cobrado', pagado|moneda, None, icono_nombre='pago') }}
+  {{ kpi('Saldo a cobrar', (trabajado - pagado)|moneda, None, 'kpi-destacado', 'caja') }}
+</div>
+<div class="grilla-2">
+  <section class="tarjeta"><h2>{{ icono('tarea') }} Mis tareas</h2>
+    <ul class="lista-simple">{% for t in tareas %}<li><span>{{ t.titulo }}{% if t.descripcion %}<br><small>{{ t.descripcion }}</small>{% endif %}</span><strong>{{ t.fecha|fecha }}</strong></li>
+      {% else %}<li class="vacio-texto">Sin tareas asignadas.</li>{% endfor %}</ul>
+    <h2 style="margin-top:1rem">{{ icono('actividad') }} Próximas actividades de la finca</h2>
+    <ul class="lista-simple">{% for a in actividades %}<li><span>{{ a.tipo|replace('_', ' ')|capitalize }} {{ a.descripcion or '' }}{% if a.lote %}<br><small>{{ a.lote.nombre }}</small>{% endif %}</span><strong>{{ a.fecha|fecha }}</strong></li>
+      {% else %}<li class="vacio-texto">Nada programado.</li>{% endfor %}</ul>
+  </section>
+  <section class="tarjeta"><h2>{{ icono('pago') }} Mis pagos</h2>
+    <ul class="lista-simple">{% for p in pagos %}<li><span>{{ p.concepto }}<br><small>{{ p.fecha|fecha }} · {{ p.periodo or '' }}</small></span><strong>{{ p.monto|moneda }}</strong></li>
+      {% else %}<li class="vacio-texto">Sin pagos registrados.</li>{% endfor %}</ul>
+  </section>
+</div>
+<section class="tarjeta"><h2>{{ icono('trabajo') }} Mis trabajos</h2>
+  <div class="tabla-contenedor"><table class="tabla tabla-responsive">
+    <thead><tr><th>Fecha</th><th>Trabajo</th><th>Finca</th><th>Cultivo</th><th class="num">Cantidad</th><th class="num">Total</th></tr></thead>
+    <tbody>{% for t in trabajos %}<tr><td data-label="Fecha">{{ t.fecha|fecha }}</td><td data-label="Trabajo">{{ t.tipo_trabajo }}</td><td data-label="Finca">{{ t.finca.nombre }}</td>
+      <td data-label="Cultivo">{{ t.cultivo.nombre if t.cultivo else '—' }}</td>
+      <td data-label="Cantidad" class="num">{{ (t.jornales|num ~ ' jornales') if t.modalidad == 'jornal' else (t.horas|num ~ ' h') if t.modalidad == 'hora' else (t.cantidad|num ~ ' u') if t.modalidad == 'unidad' else '—' }}</td>
+      <td data-label="Total" class="num">{{ t.total|moneda }}</td></tr>
+    {% else %}<tr><td colspan="6" class="vacio-texto">Sin trabajos registrados.</td></tr>{% endfor %}</tbody>
+  </table></div>
+</section>
+{% endif %}
+{% endblock %}

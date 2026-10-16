@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% from "macros/ui.html" import icono %}
+{% block titulo %}Datos de la empresa{% endblock %}
+{% block contenido %}
+<div class="cabecera-pagina"><h1>{{ icono('empresa') }} Datos de la empresa</h1><a class="btn" href="{{ url_for('configuracion.index') }}">{{ icono('izq') }} Volver</a></div>
+<form method="post" enctype="multipart/form-data" class="tarjeta form">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="form-grid">
+    {% for nombre, etiqueta, valor in [('nombre', 'Nombre de la explotación *', emp.nombre), ('cuit', 'CUIT', emp.cuit), ('telefono', 'Teléfono', emp.telefono), ('email', 'Email', emp.email), ('direccion', 'Dirección', emp.direccion), ('localidad', 'Localidad', emp.localidad)] %}
+    <div class="campo {{ 'con-error' if errores.get(nombre) }}"><label>{{ etiqueta }}</label><input type="text" name="{{ nombre }}" value="{{ request.form.get(nombre, valor or '') }}">
+      {% if errores.get(nombre) %}<p class="error-campo">{{ errores[nombre] }}</p>{% endif %}</div>
+    {% endfor %}
+    <div class="campo campo-completo {{ 'con-error' if errores.logo }}"><label>Logo</label>
+      <div style="display:flex;gap:1rem;align-items:center"><img src="{{ logo_url }}" alt="Logo actual" width="72" height="72" class="marca-logo" style="width:72px;height:72px"><input type="file" name="logo" accept=".png,.jpg,.jpeg,.webp"></div>
+      {% if errores.logo %}<p class="error-campo">{{ errores.logo }}</p>{% endif %}<p class="ayuda">Se muestra en el menú. Ideal: imagen cuadrada PNG.</p></div>
+  </div>
+  <div class="form-acciones"><button class="btn btn-primario btn-grande" type="submit">{{ icono('check') }} Guardar</button></div>
+</form>
+{% endblock %}

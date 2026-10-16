@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% from "macros/ui.html" import icono, badge %}
+{% block titulo %}{{ modulo.singular }} · {{ modulo.describir(obj) }}{% endblock %}
+{% block contenido %}
+<div class="cabecera-pagina">
+  <div>
+    <p class="miga"><a href="{{ url_for('crud.listar', key=modulo.key) }}">{{ modulo.titulo }}</a></p>
+    <h1>{{ icono(modulo.icono) }} {{ modulo.describir(obj) }}</h1>
+  </div>
+  <div class="cabecera-acciones">
+    {% for texto, url, clase in acciones %}<a class="{{ clase }}" href="{{ url }}">{{ texto }}</a>{% endfor %}
+    {% if puede_editar %}<a class="btn btn-primario" href="{{ url_for('crud.editar', key=modulo.key, id=obj.id) }}">{{ icono('editar') }} Editar</a>{% endif %}
+  </div>
+</div>
+{% if not editable and motivo %}<div class="mensaje mensaje-info">{{ motivo }}</div>{% endif %}
+
+<div class="grilla-detalle">
+  <section class="tarjeta">
+    <h2>Datos</h2>
+    <dl class="datos">
+      {% for etiqueta, valor, tipo in datos if valor != '—' or tipo not in ('textarea',) %}
+        <div class="dato {{ 'dato-completo' if tipo == 'textarea' }}"><dt>{{ etiqueta }}</dt><dd>{{ valor }}</dd></div>
+      {% endfor %}
+      {% if obj.creado_en is defined %}
+        <div class="dato"><dt>Registrado</dt><dd>{{ obj.creado_en|fecha_hora }}</dd></div>
+      {% endif %}
+    </dl>
+  </section>
+
+  {% for s in secciones %}
+    <section class="tarjeta">
+      <h2>{{ s.titulo }}</h2>
+      {% if s.tipo == 'kpis' %}
+        <div class="kpis kpis-chicos">{% for t, v in s["items"] %}<div class="kpi"><div class="kpi-titulo">{{ t }}</div><div class="kpi-valor">{{ v }}</div></div>{% endfor %}</div>
+      {% else %}
+        {% if s.filas %}
+        <div class="tabla-contenedor"><table class="tabla tabla-responsive">
+          <thead><tr>{% for c in s.columnas %}<th>{{ c }}</th>{% endfor %}</tr></thead>
+          <tbody>{% for fila in s.filas %}<tr>{% for v in fila %}<td data-label="{{ s.columnas[loop.index0] }}">{{ v }}</td>{% endfor %}</tr>{% endfor %}</tbody>
+        </table></div>
+        {% else %}<p class="vacio-texto">{{ s.vacio }}</p>{% endif %}
+        {% if s.enlace %}<p><a href="{{ s.enlace[1] }}">{{ s.enlace[0] }} →</a></p>{% endif %}
+      {% endif %}
+    </section>
+  {% endfor %}
+
+  {% if modulo.origen_gasto %}
+    <section class="tarjeta">
+      <h2>Costo imputado</h2>
+      {% if gastos %}
+        <p class="ayuda">Este registro generó automáticamente estos gastos (se actualizan si lo editás):</p>
+        <ul class="lista-simple">
+          {% for g in gastos %}<li><span>{{ g.categoria.nombre }} · {{ g.descripcion }}</span><strong>{{ g.monto|moneda }}</strong></li>{% endfor %}
+        </ul>
+      {% else %}<p class="vacio-texto">Sin costo imputado.</p>{% endif %}
+    </section>
+  {% endif %}
+
+  {% if modulo.entidad_documento %}
+    <section class="tarjeta">
+      <h2>Documentos</h2>
+      {% if documentos %}
+        <ul class="lista-simple">
+          {% for d in documentos %}<li><a href="{{ url_for('documentos.descargar', doc_id=d.id, ver=1) }}" target="_blank" rel="noopener">{{ icono('documento') }} {{ d.nombre }}</a>
+            <small>{{ d.fecha|fecha }}{% if d.fecha_vencimiento %} · vence {{ d.fecha_vencimiento|fecha }}{% endif %}</small></li>{% endfor %}
+        </ul>
+      {% else %}<p class="vacio-texto">Sin documentos.</p>{% endif %}
+      {% if puede('documentos', 'crear') %}<a class="btn btn-sm" href="{{ url_for('documentos.subir', entidad=modulo.entidad_documento, entidad_id=obj.id) }}">{{ icono('mas') }} Adjuntar documento</a>{% endif %}
+    </section>
+  {% endif %}
+</div>
+
+{% if puede_eliminar %}
+<form method="post" action="{{ url_for('crud.eliminar', key=modulo.key, id=obj.id) }}" class="zona-peligro" data-confirmar="¿Eliminar este registro? Esta acción no se puede deshacer.">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <button class="btn btn-peligro" type="submit">{{ icono('borrar') }} Eliminar</button>
+</form>
+{% endif %}
+{% endblock %}

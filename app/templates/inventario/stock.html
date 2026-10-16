@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% from "macros/ui.html" import icono, badge, exportar %}
+{% block titulo %}Insumos y stock{% endblock %}
+{% block contenido %}
+<div class="cabecera-pagina">
+  <div><h1>{{ icono('stock') }} Insumos y stock</h1><p class="subtitulo">Valor total del stock: <strong>{{ valor|moneda }}</strong></p></div>
+  <div class="cabecera-acciones">
+    <a class="btn" href="{{ url_for('crud.listar', key='movimientos') }}">{{ icono('list') }} Movimientos</a>
+    <a class="btn" href="{{ url_for('compras.nuevo') }}">{{ icono('compra') }} Registrar compra</a>
+    {% if puede_crear %}<a class="btn btn-primario" href="{{ url_for('crud.nuevo', key='insumos', categoria=categoria or None) }}">{{ icono('mas') }} Nuevo insumo</a>{% endif %}
+  </div>
+</div>
+<div class="chips">
+  <a class="chip {{ 'activo' if not categoria and not bajo }}" href="{{ url_for('inventario.stock') }}">Todos</a>
+  {% for v, t in categorias %}<a class="chip {{ 'activo' if categoria == v }}" href="{{ url_for('inventario.stock', categoria=v) }}">{{ t }}</a>{% endfor %}
+  <a class="chip {{ 'activo' if bajo }}" href="{{ url_for('inventario.stock', bajo=1) }}">Stock bajo</a>
+</div>
+<form method="get" class="panel-filtros"><div class="filtros-grid">
+  {% if categoria %}<input type="hidden" name="categoria" value="{{ categoria }}">{% endif %}
+  <label class="campo"><span>Buscar</span><input type="search" name="q" value="{{ q }}" placeholder="Nombre o tipo"></label>
+  <div class="filtros-acciones"><button class="btn btn-primario">{{ icono('buscar') }} Buscar</button></div>
+</div></form>
+{% if insumos %}
+<div class="tabla-contenedor"><table class="tabla tabla-responsive">
+  <thead><tr><th>Insumo</th><th>Categoría</th><th class="num">Stock</th><th class="num ocultar-movil">Mínimo</th><th class="num ocultar-movil">Costo prom.</th><th class="num">Valor</th><th>Estado</th></tr></thead>
+  <tbody>{% for i in insumos %}
+    <tr data-href="{{ url_for('crud.detalle', key='insumos', id=i.id) }}">
+      <td data-label="Insumo">{{ i.nombre }}{% if i.tipo %}<br><small class="ayuda">{{ i.tipo }}</small>{% endif %}</td>
+      <td data-label="Categoría">{{ dict(categorias)[i.categoria] }}</td>
+      <td data-label="Stock" class="num">{{ i.stock|num }} {{ i.unidad.abreviatura }}</td>
+      <td data-label="Mínimo" class="num ocultar-movil">{{ i.stock_minimo|num }}</td>
+      <td data-label="Costo prom." class="num ocultar-movil">{{ i.costo_promedio|moneda(2) }}</td>
+      <td data-label="Valor" class="num">{{ (i.stock * i.costo_promedio)|moneda }}</td>
+      <td data-label="Estado">{% if i.stock_minimo and i.stock < i.stock_minimo %}{{ badge('bajo', 'Stock bajo') }}{% else %}{{ badge('ok', 'OK') }}{% endif %}</td>
+    </tr>{% endfor %}</tbody>
+</table></div>
+{{ exportar('inventario.stock', request.args) }}
+{% else %}<div class="tarjeta vacio"><p>No hay insumos cargados.</p></div>{% endif %}
+{% endblock %}

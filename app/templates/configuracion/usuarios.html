@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% from "macros/ui.html" import icono, badge %}
+{% block titulo %}Usuarios{% endblock %}
+{% block contenido %}
+<div class="cabecera-pagina">
+  <div><h1>{{ icono('personas') }} Usuarios y permisos</h1>
+    <p class="subtitulo">El propietario ve todo. Cada encargado ve y carga datos sólo de las fincas que tiene asignadas. El trabajador ve sus trabajos y pagos.</p></div>
+  <div class="cabecera-acciones"><a class="btn btn-primario" href="{{ url_for('configuracion.usuario_form') }}">{{ icono('mas') }} Nuevo usuario</a></div>
+</div>
+<div class="tabla-contenedor"><table class="tabla tabla-responsive">
+  <thead><tr><th>Nombre</th><th>Email</th><th>Rol</th><th>Fincas</th><th>Último ingreso</th><th>Estado</th></tr></thead>
+  <tbody>{% for u in usuarios %}
+    <tr data-href="{{ url_for('configuracion.usuario_form', usuario_id=u.id) }}">
+      <td data-label="Nombre">{{ u.nombre }}</td><td data-label="Email">{{ u.email }}</td><td data-label="Rol">{{ u.rol.nombre }}</td>
+      <td data-label="Fincas">{% if u.rol_codigo == 'propietario' %}Todas{% else %}{{ u.fincas|map(attribute='nombre')|join(', ') or '—' }}{% endif %}</td>
+      <td data-label="Último ingreso">{{ u.ultimo_acceso|fecha_hora }}</td>
+      <td data-label="Estado">{{ badge('activo' if u.activo else 'inactivo') }}</td></tr>
+  {% endfor %}</tbody>
+</table></div>
+{% endblock %}

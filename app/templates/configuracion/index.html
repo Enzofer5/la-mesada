@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% from "macros/ui.html" import icono %}
+{% block titulo %}Configuración{% endblock %}
+{% block contenido %}
+<div class="cabecera-pagina"><h1>{{ icono('config') }} Configuración</h1></div>
+<div class="opciones-config">
+  {% set opciones = [
+    ('empresa', 'editar', url_for('configuracion.empresa'), 'empresa', 'Datos de la empresa', 'Nombre, CUIT, logo'),
+    ('usuarios', 'ver', url_for('configuracion.usuarios'), 'personas', 'Usuarios y permisos', 'Propietario, encargados y trabajadores'),
+    ('fincas', 'ver', url_for('crud.listar', key='fincas'), 'finca', 'Fincas', 'Crear y renombrar fincas'),
+    ('campanas', 'ver', url_for('crud.listar', key='campanas'), 'campana', 'Campañas agrícolas', 'Campaña activa y cerradas'),
+    ('cultivos', 'ver', url_for('crud.listar', key='cultivos'), 'cultivo', 'Cultivos', 'Catálogo y unidad de producción'),
+    ('unidades', 'ver', url_for('crud.listar', key='unidades'), 'regla', 'Unidades de medida', 'Toneladas, bolsas, quintales…'),
+    ('categorias_gasto', 'ver', url_for('crud.listar', key='categorias_gasto'), 'tag', 'Categorías de gasto', 'Semillas, fertilizantes, etc.'),
+    ('historial', 'ver', url_for('configuracion.historial'), 'list', 'Historial de actividades', 'Quién hizo qué y cuándo'),
+  ] %}
+  {% for modulo, accion, url, ic, titulo, detalle in opciones if puede(modulo, accion) %}
+    <a class="opcion-config" href="{{ url }}">{{ icono(ic) }}<div><strong>{{ titulo }}</strong><small>{{ detalle }}</small></div></a>
+  {% endfor %}
+  <a class="opcion-config" href="{{ url_for('auth.cambiar_clave') }}">{{ icono('llave') }}<div><strong>Mi contraseña</strong><small>Cambiar mi contraseña</small></div></a>
+</div>
+{% endblock %}

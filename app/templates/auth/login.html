@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block titulo %}Ingresar{% endblock %}
+{% block body_class %}pagina-login{% endblock %}
+{% block publico %}
+<main class="login">
+  <div class="login-caja">
+    <div class="login-escena" aria-hidden="true">
+      <div class="tractor-anim">
+        <span class="login-huella"></span>
+        <span class="humo h1"></span><span class="humo h2"></span><span class="humo h3"></span>
+        <span class="polvo q1"></span><span class="polvo q2"></span><span class="polvo q3"></span>
+        <svg class="tractor-svg" viewBox="0 0 130 96" width="130" height="96">
+          <g class="tractor-cuerpo">
+            <rect x="80" y="10" width="5" height="26" rx="1.5" fill="#3b3b3b"/>
+            <rect x="78.5" y="8" width="8" height="4" rx="1.5" fill="#2b2b2b"/>
+            <path d="M22 22 h34 l6 24 h-40 z" fill="#2f5a2a"/>
+            <path d="M27 26 h25 l4 16 h-29 z" fill="#cfe6f2" opacity=".9"/>
+            <rect x="18" y="18" width="42" height="6" rx="2" fill="#3f6e3a"/>
+            <path d="M58 40 h42 a8 8 0 0 1 8 8 v10 h-50 z" fill="#3f6e3a"/>
+            <rect x="96" y="44" width="10" height="5" rx="1.5" fill="#f1c84b"/>
+            <rect x="62" y="44" width="30" height="3" rx="1.5" fill="#2f5a2a"/>
+            <path d="M16 44 h46 v16 h-46 z" fill="#3f6e3a"/>
+            <rect x="12" y="56" width="98" height="6" rx="3" fill="#2b2b2b"/>
+          </g>
+          <g class="rueda rueda-tras">
+            <circle cx="36" cy="66" r="25" fill="#1f1f1f"/>
+            <circle cx="36" cy="66" r="15" fill="#c9a227"/>
+            <circle cx="36" cy="66" r="5" fill="#7a6215"/>
+            <path d="M36 51 v30 M21 66 h30 M25.4 55.4 l21.2 21.2 M46.6 55.4 l-21.2 21.2" stroke="#7a6215" stroke-width="2.5"/>
+            <circle cx="36" cy="66" r="25" fill="none" stroke="#3a3a3a" stroke-width="4" stroke-dasharray="5 4"/>
+          </g>
+          <g class="rueda rueda-del">
+            <circle cx="98" cy="76" r="15" fill="#1f1f1f"/>
+            <circle cx="98" cy="76" r="8.5" fill="#c9a227"/>
+            <circle cx="98" cy="76" r="3" fill="#7a6215"/>
+            <path d="M98 67.5 v17 M89.5 76 h17" stroke="#7a6215" stroke-width="2"/>
+            <circle cx="98" cy="76" r="15" fill="none" stroke="#3a3a3a" stroke-width="3" stroke-dasharray="4 3"/>
+          </g>
+        </svg>
+      </div>
+    </div>
+    <div class="login-logo-marco">
+      <img src="{{ logo_url }}" alt="Logo" class="login-logo" width="140" height="140">
+    </div>
+    <h1>{{ APP_NOMBRE }}</h1>
+    <p class="login-sub">{{ APP_SUBTITULO }}</p>
+    {% with mensajes = get_flashed_messages(with_categories=true) %}
+      {% for cat, msg in mensajes %}<div class="mensaje mensaje-{{ cat }}">{{ msg }}</div>{% endfor %}
+    {% endwith %}
+    <form method="post" class="form-login" autocomplete="on">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label class="campo"><span>Email</span>
+        <input type="email" name="email" value="{{ email }}" required autofocus autocomplete="username" inputmode="email">
+      </label>
+      <label class="campo"><span>Contraseña</span>
+        <input type="password" name="clave" required autocomplete="current-password">
+      </label>
+      <label class="check"><input type="checkbox" name="recordar" value="1"> <span>Mantener la sesión en este dispositivo</span></label>
+      <button type="submit" class="btn btn-primario btn-grande">Ingresar</button>
+    </form>
+  </div>
+  <p class="login-pie">Gestión de fincas, cultivos, costos y rentabilidad</p>
+</main>
+{% endblock %}

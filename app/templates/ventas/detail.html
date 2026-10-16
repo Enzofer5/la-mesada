@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% from "macros/ui.html" import icono, badge, kpi %}
+{% block titulo %}Venta #{{ venta.id }}{% endblock %}
+{% block contenido %}
+<div class="cabecera-pagina">
+  <div>
+    <p class="miga"><a href="{{ url_for('ventas.listar') }}">Ventas</a></p>
+    <h1>{{ icono('venta') }} Venta #{{ venta.id }} · {{ venta.cliente.nombre }} {{ badge(venta.estado_pago) }}</h1>
+  </div>
+  <div class="cabecera-acciones">
+    <a class="btn" href="{{ url_for('documentos.subir', entidad='venta', entidad_id=venta.id) }}">{{ icono('documento') }} Adjuntar remito/factura</a>
+    {% if puede_editar %}<a class="btn btn-primario" href="{{ url_for('ventas.editar', venta_id=venta.id) }}">{{ icono('editar') }} Editar</a>{% endif %}
+  </div>
+</div>
+<div class="kpis">
+  {{ kpi('Total', venta.total|moneda) }}
+  {{ kpi('Cobrado', venta.cobrado|moneda) }}
+  {{ kpi('Saldo a cobrar', venta.saldo|moneda, ('Vence ' ~ (venta.fecha_vencimiento_cobro|fecha)) if venta.fecha_vencimiento_cobro else None, 'kpi-negativo' if venta.saldo > 0 else 'kpi-positivo') }}
+</div>
+<div class="grilla-2">
+  <section class="tarjeta">
+    <h2>Datos</h2>
+    <dl class="datos">
+      <div class="dato"><dt>Fecha</dt><dd>{{ venta.fecha|fecha }}</dd></div>
+      <div class="dato"><dt>Finca</dt><dd>{{ venta.finca.nombre }}</dd></div>
+      <div class="dato"><dt>Campaña</dt><dd>{{ venta.campana.nombre if venta.campana else '—' }}</dd></div>
+      <div class="dato"><dt>Forma de pago</dt><dd>{{ venta.forma_pago|replace('_', ' ')|capitalize }}</dd></div>
+      <div class="dato"><dt>Comprobante</dt><dd>{{ venta.comprobante or '—' }}</dd></div>
+      <div class="dato"><dt>Transporte</dt><dd>{{ venta.transporte or '—' }}{% if venta.costo_flete %} · flete {{ venta.costo_flete|moneda }} ({{ venta.flete_a_cargo }}){% endif %}</dd></div>
+      <div class="dato"><dt>Registró</dt><dd>{{ venta.usuario.nombre if venta.usuario else '—' }}</dd></div>
+      {% if venta.observaciones %}<div class="dato dato-completo"><dt>Observaciones</dt><dd>{{ venta.observaciones }}</dd></div>{% endif %}
+    </dl>
+  </section>
+  <section class="tarjeta">
+    <h2>Productos</h2>
+    <div class="tabla-contenedor"><table class="tabla tabla-responsive">
+      <thead><tr><th>Cultivo</th><th>Calidad</th><th class="num">Cantidad</th><th class="num">Precio</th><th class="num">Subtotal</th></tr></thead>
+      <tbody>{% for d in venta.detalles %}<tr><td data-label="Cultivo">{{ d.cultivo.nombre }}</td><td data-label="Calidad">{{ d.calidad|capitalize if d.calidad else '—' }}</td>
+        <td data-label="Cantidad" class="num">{{ d.cantidad|num }} {{ d.unidad.abreviatura }}</td><td data-label="Precio" class="num">{{ d.precio_unitario|moneda(2) }}</td><td data-label="Subtotal" class="num">{{ d.subtotal|moneda }}</td></tr>{% endfor %}</tbody>
+      <tfoot><tr><td colspan="4">Total</td><td class="num">{{ venta.total|moneda }}</td></tr></tfoot>
+    </table></div>
+  </section>
+</div>
+
+<section class="tarjeta">
+  <h2>{{ icono('ingreso') }} Cobros</h2>
+  {% if venta.ingresos %}
+  <div class="tabla-contenedor"><table class="tabla tabla-responsive">
+    <thead><tr><th>Fecha</th><th>Medio</th><th>Estado</th><th class="num">Monto</th><th></th></tr></thead>
+    <tbody>{% for i in venta.ingresos %}<tr><td data-label="Fecha">{{ i.fecha|fecha }}</td><td data-label="Medio">{{ i.metodo_pago|capitalize }}</td><td data-label="Estado">{{ badge(i.estado) }}</td>
+      <td data-label="Monto" class="num">{{ i.monto|moneda }}</td><td class="acciones-col"><a class="btn btn-sm" href="{{ url_for('crud.detalle', key='ingresos', id=i.id) }}">Ver</a></td></tr>{% endfor %}</tbody>
+  </table></div>
+  {% else %}<p class="vacio-texto">Todavía no se registraron cobros.</p>{% endif %}
+  {% if puede_cobrar and venta.saldo > 0 %}
+  <form method="post" action="{{ url_for('ventas.cobrar', venta_id=venta.id) }}" class="form" style="margin-top:1rem">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <h3>Registrar cobro</h3>
+    <div class="form-grid">
+      <div class="campo"><label>Fecha</label><input type="date" name="fecha" value="{{ hoy.isoformat() }}" required></div>
+      <div class="campo"><label>Monto ($)</label><input type="text" inputmode="decimal" name="monto" value="{{ venta.saldo.normalize() }}" data-numero required></div>
+      <div class="campo"><label>Medio</label><select name="metodo_pago">{% for v, t in metodos %}<option value="{{ v }}">{{ t }}</option>{% endfor %}</select></div>
+      <div class="campo"><label>Estado</label><select name="estado">{% for v, t in estados_ingreso %}<option value="{{ v }}">{{ t }}</option>{% endfor %}</select></div>
+    </div>
+    <div class="form-acciones"><button class="btn btn-primario" type="submit">{{ icono('check') }} Registrar cobro</button></div>
+  </form>
+  {% endif %}
+</section>
+
+{% if puede_eliminar %}
+<form method="post" action="{{ url_for('ventas.eliminar', venta_id=venta.id) }}" class="zona-peligro" data-confirmar="¿Eliminar esta venta?">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-peligro" type="submit">{{ icono('borrar') }} Eliminar venta</button>
+</form>
+{% endif %}
+{% endblock %}

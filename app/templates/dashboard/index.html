@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% from "macros/ui.html" import icono, kpi, filtros_analisis, grafico, badge %}
+{% block titulo %}Dashboard{% endblock %}
+{% block head %}<script src="{{ url_for('static', filename='vendor/chart.umd.min.js') }}"></script>{% endblock %}
+{% block contenido %}
+<div class="cabecera-pagina">
+  <div>
+    <h1>{{ icono('inicio') }} {{ empresa.nombre }}</h1>
+    <p class="subtitulo">{{ kpis.fincas }} finca{{ 's' if kpis.fincas != 1 }} · {{ descripcion }}</p>
+  </div>
+  <div class="cabecera-acciones">
+    <a class="btn" href="{{ url_for('rentabilidad.index', **query) }}">{{ icono('rentabilidad') }} Rentabilidad</a>
+    <a class="btn" href="{{ url_for('reportes.index') }}">{{ icono('reporte') }} Reportes</a>
+  </div>
+</div>
+
+{{ filtros_analisis(url_for('dashboard.index'), f, opciones, descripcion) }}
+
+<div class="kpis">
+  {{ kpi('Hectáreas totales', kpis.total|num ~ ' ha', kpis.cultivable|num ~ ' ha aptas para cultivo', icono_nombre='finca') }}
+  {{ kpi('Superficie cultivada', kpis.cultivada|num ~ ' ha', 'En curso hoy', icono_nombre='siembra') }}
+  {{ kpi('Hectáreas disponibles', kpis.libre|num ~ ' ha', 'Sin cultivar', icono_nombre='lotes') }}
+  {{ kpi('Producción', kpis.toneladas|num ~ ' t', 'Comercializable del período', icono_nombre='cosecha') }}
+  {{ kpi('Ingresos', kpis.ingresos|moneda, 'Ventas y otros ingresos', icono_nombre='ingreso') }}
+  {{ kpi('Gastos', kpis.costos|moneda, 'Costos imputados', icono_nombre='gasto') }}
+  {{ kpi('Ganancia', kpis.ganancia|moneda, ('Margen ' ~ (kpis.margen|pct)) if kpis.margen is not none else 'Sin ingresos', 'kpi-destacado' if kpis.ganancia >= 0 else 'kpi-negativo', 'rentabilidad') }}
+  {{ kpi('Empleados activos', kpis.empleados, None, icono_nombre='personas') }}
+  {{ kpi('A cobrar', kpis.por_cobrar|moneda, 'Ventas pendientes', icono_nombre='venta') }}
+  {{ kpi('A pagar', kpis.por_pagar|moneda, 'Deuda con proveedores', icono_nombre='factura') }}
+</div>
+
+<div class="grilla-3">
+  <section class="tarjeta">
+    <h2>{{ icono('cultivo') }} Cultivos actuales</h2>
+    {% if kpis.cultivos_actuales %}
+      <ul class="lista-simple">{% for nombre, ha in kpis.cultivos_actuales %}<li><span>{{ nombre }}</span><strong>{{ ha|num }} ha</strong></li>{% endfor %}</ul>
+    {% else %}<p class="vacio-texto">No hay siembras en curso.</p>{% endif %}
+  </section>
+  <section class="tarjeta">
+    <h2>{{ icono('cosecha') }} Próximas cosechas</h2>
+    {% if proximas %}
+      <ul class="lista-simple">{% for s in proximas %}
+        <li><span>{{ s.cultivo.nombre }} · {{ s.finca.nombre }}{% if s.lote %} · {{ s.lote.nombre }}{% endif %}<br><small>{{ s.superficie|num }} ha{% if s.produccion_estimada %} · est. {{ s.produccion_estimada|num(0) }} {{ s.cultivo.unidad.abreviatura }}{% endif %}</small></span>
+            <strong>{{ s.fecha_cosecha_estimada|fecha }}</strong></li>{% endfor %}</ul>
+    {% else %}<p class="vacio-texto">Sin fechas estimadas de cosecha.</p>{% endif %}
+  </section>
+  <section class="tarjeta">
+    <h2>{{ icono('alerta') }} Alertas</h2>
+    {% for a in alertas %}
+      <a class="alerta-item alerta-{{ a.nivel }}" href="{{ a.url }}"><div><strong>{{ a.titulo }}</strong><small>{{ a.detalle }}</small></div></a>
+    {% else %}<p class="vacio-texto">Todo en orden.</p>{% endfor %}
+    <a href="{{ url_for('alertas.index') }}">Ver todas →</a>
+  </section>
+</div>
+
+<div class="grilla-2">
+  <section class="tarjeta">
+    <h2>{{ icono('finca') }} Ranking de fincas por ganancia</h2>
+    <ol class="ranking">{% for r in graficos.rankings.fincas %}
+      <li><span>{{ r.nombre }}<small>{{ r.superficie|num }} ha · margen {{ r.margen|pct }}</small></span><strong class="{{ 'negativo' if r.ganancia < 0 else 'positivo' }}">{{ r.ganancia|moneda }}</strong></li>
+    {% else %}<p class="vacio-texto">Sin datos.</p>{% endfor %}</ol>
+  </section>
+  <section class="tarjeta">
+    <h2>{{ icono('cultivo') }} Ranking de cultivos por ganancia</h2>
+    <ol class="ranking">{% for r in graficos.rankings.cultivos %}
+      <li><span>{{ r.nombre }}<small>{{ r.superficie|num }} ha · {{ (r.ganancia_ha|moneda) ~ '/ha' if r.ganancia_ha is not none else '' }}</small></span><strong class="{{ 'negativo' if r.ganancia < 0 else 'positivo' }}">{{ r.ganancia|moneda }}</strong></li>
+    {% else %}<p class="vacio-texto">Sin datos.</p>{% endfor %}</ol>
+  </section>
+</div>
+
+<div class="graficos">
+  {{ grafico('ingresos_mes', graficos.ingresos_mes, 'Ingresos y gastos por mes') }}
+  {{ grafico('gastos_categoria', graficos.gastos_categoria, 'Gastos por categoría') }}
+  {{ grafico('ganancia_finca', graficos.ganancia_finca, 'Ganancia por finca', 'En rojo, las fincas con pérdida.') }}
+  {{ grafico('costos_finca', graficos.costos_finca, 'Costos por finca') }}
+  {{ grafico('rentabilidad_cultivo', graficos.rentabilidad_cultivo, 'Rentabilidad por cultivo') }}
+  {{ grafico('produccion_cultivo', graficos.produccion_cultivo, 'Producción por cultivo (toneladas)', 'Cantidades convertidas a toneladas con la equivalencia de cada unidad.') }}
+  {{ grafico('superficie_cultivo', graficos.superficie_cultivo, 'Superficie sembrada por cultivo') }}
+</div>
+{% endblock %}

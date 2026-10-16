@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% from "macros/ui.html" import icono, paginar %}
+{% block titulo %}Historial de actividades{% endblock %}
+{% block contenido %}
+<div class="cabecera-pagina"><h1>{{ icono('list') }} Historial de actividades</h1></div>
+<form method="get" class="panel-filtros"><div class="filtros-grid">
+  <label class="campo"><span>Usuario</span><select name="usuario"><option value="">Todos</option>{% for u in usuarios %}<option value="{{ u.id }}" {% if args.get('usuario') == u.id|string %}selected{% endif %}>{{ u.nombre }}</option>{% endfor %}</select></label>
+  <label class="campo"><span>Módulo</span><select name="modulo"><option value="">Todos</option>{% for m in modulos %}<option value="{{ m }}" {% if args.get('modulo') == m %}selected{% endif %}>{{ m|replace('_', ' ')|capitalize }}</option>{% endfor %}</select></label>
+  <label class="campo"><span>Acción</span><select name="accion"><option value="">Todas</option>{% for a in ['crear', 'editar', 'eliminar', 'pago', 'cobro', 'login', 'exportar'] %}<option value="{{ a }}" {% if args.get('accion') == a %}selected{% endif %}>{{ a|capitalize }}</option>{% endfor %}</select></label>
+  <label class="campo"><span>Desde</span><input type="date" name="desde" value="{{ args.get('desde', '') }}"></label>
+  <label class="campo"><span>Hasta</span><input type="date" name="hasta" value="{{ args.get('hasta', '') }}"></label>
+  <div class="filtros-acciones"><button class="btn btn-primario">{{ icono('buscar') }} Buscar</button></div>
+</div></form>
+<div class="tabla-contenedor"><table class="tabla tabla-responsive">
+  <thead><tr><th>Fecha y hora</th><th>Usuario</th><th>Módulo</th><th>Acción</th><th>Detalle</th><th>Registro</th></tr></thead>
+  <tbody>{% for h in paginacion.items %}
+    <tr><td data-label="Fecha">{{ h.fecha_hora|fecha_hora }}</td><td data-label="Usuario">{{ h.usuario.nombre if h.usuario else '—' }}</td>
+      <td data-label="Módulo">{{ h.modulo|replace('_', ' ')|capitalize }}</td><td data-label="Acción">{{ h.accion|capitalize }}</td>
+      <td data-label="Detalle">{{ h.descripcion }}</td><td data-label="Registro">{{ '#' ~ h.registro_id if h.registro_id else '—' }}</td></tr>
+  {% else %}<tr><td colspan="6" class="vacio-texto">Sin actividad registrada.</td></tr>{% endfor %}</tbody>
+</table></div>
+{{ paginar(paginacion, 'configuracion.historial', args) }}
+{% endblock %}

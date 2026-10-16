@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% from "macros/ui.html" import icono, badge, paginar, exportar %}
+{% block titulo %}{{ modulo.titulo }}{% endblock %}
+{% block contenido %}
+{% set nuevos = {} %}{% for k in modulo.filtro_fijo %}{% if args.get(k) %}{% set _ = nuevos.update({k: args.get(k)}) %}{% endif %}{% endfor %}
+{% set limpiar = dict(nuevos) %}{% set _ = limpiar.update({'key': modulo.key}) %}
+<div class="cabecera-pagina">
+  <div>
+    <h1>{{ icono(modulo.icono) }} {{ modulo.titulo }}{% if args.get('categoria') %} · {{ args.get('categoria')|capitalize }}{% endif %}</h1>
+    {% if modulo.ayuda %}<p class="subtitulo">{{ modulo.ayuda }}</p>{% endif %}
+  </div>
+  <div class="cabecera-acciones">
+    {% for texto, url in enlaces %}<a class="btn" href="{{ url }}">{{ texto }}</a>{% endfor %}
+    {% if puede_crear %}
+      <a class="btn btn-primario" href="{{ url_for('crud.nuevo', key=modulo.key, **nuevos) }}">{{ icono('mas') }} {{ modulo.nuevo_texto }}</a>
+    {% endif %}
+  </div>
+</div>
+
+{% if filtros %}
+<form method="get" class="panel-filtros abierto" role="search">
+  {% for k in modulo.filtro_fijo %}{% if args.get(k) %}<input type="hidden" name="{{ k }}" value="{{ args.get(k) }}">{% endif %}{% endfor %}
+  <div class="filtros-grid">
+    {% for fl in filtros %}
+      {% if fl.tipo == 'select' %}
+        <label class="campo"><span>{{ fl.etiqueta }}</span>
+          <select name="{{ fl.nombre }}" {% if fl.depende %}data-depende-filtro="{{ fl.depende }}" data-padres='{{ fl.padres|tojson }}'{% endif %}>
+            <option value="">Todos</option>
+            {% for v, t in fl.opciones %}<option value="{{ v }}" {% if v|string == fl.valor|string %}selected{% endif %}>{{ t }}</option>{% endfor %}
+          </select>
+        </label>
+      {% elif fl.tipo == 'rango' %}
+        <label class="campo"><span>Desde</span><input type="date" name="desde" value="{{ fl.desde }}"></label>
+        <label class="campo"><span>Hasta</span><input type="date" name="hasta" value="{{ fl.hasta }}"></label>
+      {% elif fl.tipo == 'texto' %}
+        <label class="campo"><span>{{ fl.etiqueta }}</span><input type="search" name="q" value="{{ fl.valor }}" placeholder="Escribí para buscar…"></label>
+      {% endif %}
+    {% endfor %}
+    <div class="filtros-acciones">
+      <button class="btn btn-primario" type="submit" name="buscar" value="1">{{ icono('buscar') }} Buscar</button>
+      <a class="btn" href="{{ url_for('crud.listar', **limpiar) }}">Limpiar</a>
+    </div>
+  </div>
+</form>
+{% endif %}
+
+{% if not buscar %}
+  <div class="tarjeta vacio">
+    <p>{{ icono('filtro') }} Elegí los filtros y tocá <strong>Buscar</strong>. Así la pantalla carga rápido aunque haya muchos registros.</p>
+    <a class="btn" href="{{ url_for('crud.listar', key=modulo.key, buscar=1) }}">Ver los últimos registros</a>
+  </div>
+{% else %}
+  {% if totales %}
+  <div class="totales">
+    {% for etiqueta, valor in totales %}<div class="total-item"><span>{{ etiqueta }}</span><strong>{{ valor }}</strong></div>{% endfor %}
+  </div>
+  {% endif %}
+  {% if filas %}
+  <div class="tabla-contenedor">
+    <table class="tabla tabla-responsive">
+      <thead><tr>
+        {% for c in modulo.columnas %}<th class="{{ 'ocultar-movil' if not c.movil }} {{ 'num' if c.formato in ('num', 'moneda') }}">{{ c.etiqueta }}</th>{% endfor %}
+        <th class="acciones-col"><span class="sr">Acciones</span></th>
+      </tr></thead>
+      <tbody>
+      {% for obj, celdas in filas %}
+        <tr data-href="{{ url_detalle(obj) }}">
+          {% for c in modulo.columnas %}{% set cel = celdas[loop.index0] %}
+            <td data-label="{{ c.etiqueta }}" class="{{ cel.clase or '' }} {{ 'ocultar-movil' if not c.movil }}">
+              {% if cel.badge %}{{ badge(cel.badge, cel.texto) }}{% else %}{{ cel.texto }}{% endif %}
+            </td>
+          {% endfor %}
+          <td class="acciones-col"><a class="btn btn-sm" href="{{ url_detalle(obj) }}">Ver</a></td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {{ paginar(paginacion, 'crud.listar', args, {'key': modulo.key}) }}
+  {{ exportar('crud.listar', args, {'key': modulo.key}) }}
+  {% else %}
+    <div class="tarjeta vacio"><p>No hay registros para los filtros elegidos.</p>
+      {% if puede_crear %}<a class="btn btn-primario" href="{{ url_for('crud.nuevo', key=modulo.key) }}">{{ icono('mas') }} {{ modulo.nuevo_texto }}</a>{% endif %}
+    </div>
+  {% endif %}
+{% endif %}
+{% endblock %}

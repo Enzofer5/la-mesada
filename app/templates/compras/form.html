@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% from "macros/ui.html" import icono %}
+{% block titulo %}{{ 'Nueva compra' if nueva else 'Editar compra #' ~ compra.id }}{% endblock %}
+{% macro opciones(lista, valor, vacio='— Elegir —') -%}
+<option value="">{{ vacio }}</option>
+{% for op in lista %}<option value="{{ op[0] }}" {% if op[0]|string == valor|string %}selected{% endif %}>{{ op[1] }}</option>{% endfor %}
+{%- endmacro %}
+{% macro renglon(r) -%}
+<div class="renglon renglon-compra">
+  <label class="campo"><span>Producto *</span><select name="insumo_id">{{ opciones(o.insumos, r.insumo_id) }}</select></label>
+  <label class="campo"><span>Cantidad *</span><input type="text" inputmode="decimal" name="cantidad" value="{{ r.cantidad }}" data-numero></label>
+  <label class="campo"><span>Precio unitario *</span><input type="text" inputmode="decimal" name="precio_unitario" value="{{ r.precio_unitario }}" data-numero></label>
+  <div class="subtotal">$ 0</div>
+  <button type="button" class="btn btn-sm btn-peligro" data-quitar aria-label="Quitar">{{ icono('borrar') }}</button>
+</div>
+{%- endmacro %}
+{% block contenido %}
+<div class="cabecera-pagina">
+  <h1>{{ icono('compra') }} {{ 'Nueva compra' if nueva else 'Editar compra #' ~ compra.id }}</h1>
+  <a class="btn" href="{{ url_for('compras.listar') if nueva else url_for('compras.detalle', compra_id=compra.id) }}">{{ icono('izq') }} Volver</a>
+</div>
+<form method="post" class="tarjeta form">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="form-grid">
+    <div class="campo"><label>Proveedor <b class="req">*</b></label><select name="proveedor_id" required>{{ opciones(o.proveedores, request.form.get('proveedor_id', compra.proveedor_id)) }}</select>
+      <p class="ayuda"><a href="{{ url_for('crud.nuevo', key='proveedores') }}">+ Nuevo proveedor</a></p></div>
+    <div class="campo"><label>Fecha <b class="req">*</b></label><input type="date" name="fecha" value="{{ request.form.get('fecha', compra.fecha.isoformat() if compra.fecha else '') }}" required></div>
+    <div class="campo"><label>Factura / comprobante</label><input type="text" name="comprobante" maxlength="40" value="{{ request.form.get('comprobante', compra.comprobante or '') }}"></div>
+    <div class="campo"><label>Finca de destino</label><select name="finca_id">{{ opciones(o.fincas, request.form.get('finca_id', compra.finca_id), 'Depósito general') }}</select></div>
+    <div class="campo"><label>Condición de pago <b class="req">*</b></label><select name="condicion">{% for v, t in o.condiciones %}<option value="{{ v }}" {% if request.form.get('condicion', compra.condicion) == v %}selected{% endif %}>{{ t }}</option>{% endfor %}</select></div>
+    <div class="campo" data-mostrar-si="condicion=cuenta_corriente"><label>Vencimiento del pago</label><input type="date" name="vencimiento" value="{{ request.form.get('vencimiento', compra.vencimiento.isoformat() if compra.vencimiento else '') }}"><p class="ayuda">Si lo dejás vacío: 30 días.</p></div>
+  </div>
+  <h2 style="margin-top:1.2rem">Productos comprados</h2>
+  <p class="ayuda"><a href="{{ url_for('crud.nuevo', key='insumos') }}">+ Agregar un producto nuevo al catálogo</a></p>
+  <div class="renglones" id="renglones" data-renglones="plantilla-renglon" data-total="total-compra">
+    {% for r in renglones %}{{ renglon(r) }}{% else %}{{ renglon({}) }}{% endfor %}
+  </div>
+  <template id="plantilla-renglon">{{ renglon({}) }}</template>
+  <button type="button" class="btn" data-agregar="renglones" style="margin-top:.6rem">{{ icono('mas') }} Agregar producto</button>
+  <p class="total-form" id="total-compra"></p>
+  <div class="campo campo-completo"><label>Observaciones</label><textarea name="observaciones" rows="2">{{ request.form.get('observaciones', compra.observaciones or '') }}</textarea></div>
+  <div class="form-acciones"><button class="btn btn-primario btn-grande" type="submit">{{ icono('check') }} Guardar compra</button></div>
+</form>
+{% endblock %}

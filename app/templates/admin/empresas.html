@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% from "macros/ui.html" import icono, badge %}
+{% block titulo %}Empresas{% endblock %}
+{% block contenido %}
+<div class="cabecera-pagina">
+  <div><h1>{{ icono('empresa') }} Empresas (clientes del sistema)</h1>
+    <p class="subtitulo">Cada empresa es una explotación agrícola con sus propios datos, usuarios y configuración. Los datos de una empresa nunca son visibles para otra.</p></div>
+  <div class="cabecera-acciones"><a class="btn btn-primario" href="{{ url_for('admin.nueva') }}">{{ icono('mas') }} Nueva empresa</a></div>
+</div>
+<div class="tabla-contenedor"><table class="tabla tabla-responsive">
+  <thead><tr><th>Empresa</th><th>Localidad</th><th class="num">Usuarios</th><th class="num">Fincas</th><th>Alta</th><th>Estado</th><th></th></tr></thead>
+  <tbody>{% for e in empresas %}
+    <tr><td data-label="Empresa"><strong>{{ e.nombre }}</strong>{% if e.datos_demo %} <small class="ayuda">(demo)</small>{% endif %}</td>
+      <td data-label="Localidad">{{ e.localidad or '—' }}</td><td data-label="Usuarios" class="num">{{ usuarios.get(e.id, 0) }}</td>
+      <td data-label="Fincas" class="num">{{ fincas.get(e.id, 0) }}</td><td data-label="Alta">{{ e.creado_en|fecha }}</td>
+      <td data-label="Estado">{{ badge('activa' if e.activa else 'inactiva', 'Activa' if e.activa else 'Suspendida') }}</td>
+      <td class="acciones-col"><form method="post" action="{{ url_for('admin.cambiar_estado', empresa_id=e.id) }}" data-confirmar="¿{{ 'Suspender' if e.activa else 'Activar' }} la empresa {{ e.nombre }}?">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm" type="submit">{{ 'Suspender' if e.activa else 'Activar' }}</button></form></td></tr>
+  {% else %}<tr><td colspan="7" class="vacio-texto">No hay empresas.</td></tr>{% endfor %}</tbody>
+</table></div>
+{% endblock %}

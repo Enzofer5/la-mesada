@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% from "macros/ui.html" import icono, kpi, filtros_analisis, grafico, badge %}
+{% block titulo %}Caja / Finanzas{% endblock %}
+{% block head %}<script src="{{ url_for('static', filename='vendor/chart.umd.min.js') }}"></script>{% endblock %}
+{% block contenido %}
+<div class="cabecera-pagina">
+  <div><h1>{{ icono('caja') }} Caja / Finanzas</h1><p class="subtitulo">{{ descripcion }}</p></div>
+  <div class="cabecera-acciones">
+    <a class="btn" href="{{ url_for('crud.nuevo', key='ingresos') }}">{{ icono('ingreso') }} Registrar ingreso</a>
+    <a class="btn btn-primario" href="{{ url_for('crud.nuevo', key='gastos') }}">{{ icono('gasto') }} Registrar gasto</a>
+  </div>
+</div>
+{{ filtros_analisis(url_for('finanzas.index'), f, opciones, descripcion) }}
+
+<h2>Resultado del período</h2>
+<div class="kpis">
+  {{ kpi('Ingresos (ventas + otros)', kpis.ingresos|moneda, 'Devengado', icono_nombre='ingreso') }}
+  {{ kpi('Gastos', kpis.costos|moneda, 'Costos imputados', icono_nombre='gasto') }}
+  {{ kpi('Ganancia', kpis.ganancia|moneda, None, 'kpi-destacado' if kpis.ganancia >= 0 else 'kpi-negativo', 'rentabilidad') }}
+</div>
+<h2>Movimientos de dinero del período</h2>
+<div class="kpis">
+  {{ kpi('Cobrado', cobrado|moneda, 'Cobros acreditados', icono_nombre='ingreso') }}
+  {% if pagos_prov is not none %}{{ kpi('Pagado a proveedores', pagos_prov|moneda, 'Cuentas corrientes', icono_nombre='factura') }}{% endif %}
+  {{ kpi('Pagado a empleados', pagos_emp|moneda, None, icono_nombre='pago') }}
+  {{ kpi('Cheques a depositar', a_depositar|moneda, 'Cobros pendientes de acreditar', icono_nombre='caja') }}
+</div>
+<h2>Saldos pendientes (hoy)</h2>
+<div class="kpis">
+  {{ kpi('A cobrar por ventas', por_cobrar|moneda, None, icono_nombre='venta') }}
+  {{ kpi('Deuda con proveedores', por_pagar|moneda, ('Vencido: ' ~ (vencido|moneda)) if vencido else None, 'kpi-negativo' if vencido else '', 'factura') }}
+  {{ kpi('Saldo a pagar a empleados', deuda_empleados|moneda, 'Trabajado − pagado', icono_nombre='personas') }}
+</div>
+
+<div class="grilla-2">
+  <section class="tarjeta">
+    <h2>{{ icono('venta') }} Ventas pendientes de cobro</h2>
+    <ul class="lista-simple">{% for v in ventas_pend %}
+      <li><a href="{{ url_for('ventas.detalle', venta_id=v.id) }}">#{{ v.id }} · {{ v.cliente.nombre }}</a>
+        <span><small>{{ ('vence ' ~ (v.fecha_vencimiento_cobro|fecha)) if v.fecha_vencimiento_cobro else v.fecha|fecha }}</small> <strong>{{ v.saldo|moneda }}</strong></span></li>
+    {% else %}<li class="vacio-texto">No hay ventas pendientes.</li>{% endfor %}</ul>
+    <a href="{{ url_for('reportes.ver', tipo='cuentas_cobrar', todo=1) }}">Reporte completo →</a>
+  </section>
+  <section class="tarjeta">
+    <h2>{{ icono('factura') }} Cuentas a pagar</h2>
+    <ul class="lista-simple">{% for c in cuentas %}
+      <li><a href="{{ url_for('crud.detalle', key='cuentas_pagar', id=c.id) }}">{{ c.proveedor.razon_social }}</a>
+        <span><small>vence {{ c.vencimiento|fecha }}</small> {{ badge(c.estado) }} <strong>{{ c.pendiente|moneda }}</strong></span></li>
+    {% else %}<li class="vacio-texto">Sin deudas pendientes.</li>{% endfor %}</ul>
+    <a href="{{ url_for('crud.listar', key='cuentas_pagar', estado_cuenta='no_pagado') }}">Ver todas →</a>
+  </section>
+</div>
+<div class="graficos">
+  {{ grafico('serie', {'tipo': 'barras', 'labels': serie.labels, 'moneda': True, 'series': [{'nombre': 'Ingresos', 'datos': serie.ingresos, 'color': '#2a78d6'}, {'nombre': 'Gastos', 'datos': serie.gastos, 'color': '#eb6834'}]}, 'Ingresos y gastos por mes') }}
+</div>
+{% endblock %}

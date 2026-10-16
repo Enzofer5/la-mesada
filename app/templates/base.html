@@ -1,0 +1,109 @@
+{% from "macros/ui.html" import icono %}
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#3f6e3a">
+  <title>{% block titulo %}{% endblock %} · {{ empresa.nombre if empresa else APP_NOMBRE }}</title>
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/favicon.png') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+  {% block head %}{% endblock %}
+</head>
+<body class="{% block body_class %}{% endblock %}">
+{% include "macros/iconos.html" %}
+{% if current_user.is_authenticated %}
+<div class="app">
+  <aside class="sidebar" id="sidebar" aria-label="Menú principal">
+    <div class="marca">
+      <img src="{{ logo_url }}" alt="" class="marca-logo" width="44" height="44">
+      <div class="marca-texto">
+        <strong>{{ empresa.nombre if empresa else APP_NOMBRE }}</strong>
+        <small>{{ APP_SUBTITULO }}</small>
+      </div>
+      <button class="btn-icono solo-movil" type="button" data-cerrar-menu aria-label="Cerrar menú">{{ icono('x') }}</button>
+    </div>
+    <nav class="menu">
+      {% for grupo, items in menu %}
+        <div class="menu-grupo">
+          <div class="menu-grupo-titulo">{{ grupo }}</div>
+          {% for texto, ic, url, _ in items %}
+            {% set u = url.split('?')[0] %}{% set activo = request.path == u or (u|length > 1 and u.endswith('/') and request.path.startswith(u)) %}
+            <a href="{{ url }}" class="menu-item {{ 'activo' if activo }}">
+              {{ icono(ic) }}<span>{{ texto }}</span>
+              {% if texto == 'Alertas' and alertas_pendientes %}<span class="globo">{{ alertas_pendientes }}</span>{% endif %}
+            </a>
+          {% endfor %}
+        </div>
+      {% endfor %}
+    </nav>
+    <div class="sidebar-pie">
+      <div class="usuario">
+        <span class="avatar">{{ current_user.nombre[:1] }}</span>
+        <div><strong>{{ current_user.nombre }}</strong><small>{{ current_user.rol.nombre }}</small></div>
+      </div>
+      <div class="sidebar-acciones">
+        <a href="{{ url_for('auth.cambiar_clave') }}" class="btn btn-sm btn-fantasma">{{ icono('llave') }} Clave</a>
+        <form method="post" action="{{ url_for('auth.logout') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="btn btn-sm btn-fantasma" type="submit">{{ icono('salir') }} Salir</button>
+        </form>
+      </div>
+    </div>
+  </aside>
+  <div class="velo" data-cerrar-menu></div>
+
+  <div class="principal">
+    <header class="topbar">
+      <button class="btn-icono solo-movil" type="button" data-abrir-menu aria-label="Abrir menú">{{ icono('menu') }}</button>
+      <div class="topbar-titulo">{% block encabezado %}{{ self.titulo() }}{% endblock %}</div>
+      <div class="topbar-acciones">
+        {% if empresa %}
+        <a href="{{ url_for('alertas.index') }}" class="btn-icono campana" aria-label="Alertas">
+          {{ icono('alerta') }}{% if alertas_pendientes %}<span class="globo">{{ alertas_pendientes }}</span>{% endif %}
+        </a>
+        {% endif %}
+      </div>
+    </header>
+
+    {% if empresa and empresa.datos_demo %}
+      <div class="aviso-demo">Estás viendo <strong>datos ficticios de demostración</strong>. Los montos no son reales.</div>
+    {% endif %}
+
+    <main class="contenido">
+      {% with mensajes = get_flashed_messages(with_categories=true) %}
+        {% if mensajes %}
+          <div class="mensajes">
+            {% for cat, msg in mensajes %}
+              <div class="mensaje mensaje-{{ cat }}" role="status">{{ msg }}<button type="button" class="cerrar" data-cerrar-mensaje aria-label="Cerrar">{{ icono('x') }}</button></div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+      {% block contenido %}{% endblock %}
+    </main>
+  </div>
+
+  {% if empresa and current_user.rol_codigo in ('propietario', 'encargado') %}
+  <div class="fab" data-fab>
+    <div class="fab-menu" id="fab-menu" hidden>
+      <a href="{{ url_for('crud.nuevo', key='gastos') }}">{{ icono('gasto') }} Gasto</a>
+      <a href="{{ url_for('crud.nuevo', key='trabajos') }}">{{ icono('trabajo') }} Trabajo</a>
+      <a href="{{ url_for('crud.nuevo', key='siembras') }}">{{ icono('siembra') }} Siembra</a>
+      <a href="{{ url_for('crud.nuevo', key='aplicaciones_fertilizantes') }}">{{ icono('fertilizante') }} Fertilización</a>
+      <a href="{{ url_for('crud.nuevo', key='aplicaciones_agroquimicos') }}">{{ icono('agroquimico') }} Agroquímico</a>
+      <a href="{{ url_for('crud.nuevo', key='cosechas') }}">{{ icono('cosecha') }} Cosecha</a>
+      <a href="{{ url_for('ventas.nuevo') }}">{{ icono('venta') }} Venta</a>
+      <a href="{{ url_for('crud.nuevo', key='combustibles') }}">{{ icono('combustible') }} Combustible</a>
+    </div>
+    <button class="fab-boton" type="button" aria-label="Carga rápida" aria-controls="fab-menu" aria-expanded="false">{{ icono('mas') }}</button>
+  </div>
+  {% endif %}
+</div>
+{% else %}
+  {% block publico %}{% endblock %}
+{% endif %}
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

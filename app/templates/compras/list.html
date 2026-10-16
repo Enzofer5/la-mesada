@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% from "macros/ui.html" import icono, paginar, exportar, select_simple %}
+{% block titulo %}Compras de insumos{% endblock %}
+{% block contenido %}
+<div class="cabecera-pagina">
+  <div><h1>{{ icono('compra') }} Compras de insumos</h1>
+    <p class="subtitulo">Las compras suben el stock (a costo promedio). El costo se imputa al cultivo cuando el insumo se aplica.</p></div>
+  <div class="cabecera-acciones">
+    <a class="btn" href="{{ url_for('inventario.stock') }}">{{ icono('stock') }} Stock</a>
+    {% if puede('compras', 'crear') %}<a class="btn btn-primario" href="{{ url_for('compras.nuevo') }}">{{ icono('mas') }} Nueva compra</a>{% endif %}
+  </div>
+</div>
+<form method="get" class="panel-filtros"><div class="filtros-grid">
+  {{ select_simple('proveedor', 'Proveedor', o.proveedores, args.get('proveedor')) }}
+  {{ select_simple('finca', 'Finca', o.fincas, args.get('finca'), 'Todas') }}
+  {{ select_simple('condicion', 'Condición', o.condiciones, args.get('condicion')) }}
+  <label class="campo"><span>Desde</span><input type="date" name="desde" value="{{ args.get('desde', '') }}"></label>
+  <label class="campo"><span>Hasta</span><input type="date" name="hasta" value="{{ args.get('hasta', '') }}"></label>
+  <div class="filtros-acciones"><button class="btn btn-primario">{{ icono('buscar') }} Buscar</button><a class="btn" href="{{ url_for('compras.listar') }}">Limpiar</a></div>
+</div></form>
+<div class="totales"><div class="total-item"><span>Total comprado</span><strong>{{ total|moneda }}</strong></div></div>
+{% if paginacion.items %}
+<div class="tabla-contenedor"><table class="tabla tabla-responsive">
+  <thead><tr><th>N°</th><th>Fecha</th><th>Proveedor</th><th class="ocultar-movil">Comprobante</th><th>Productos</th><th>Condición</th><th class="num">Total</th></tr></thead>
+  <tbody>{% for c in paginacion.items %}
+    <tr data-href="{{ url_for('compras.detalle', compra_id=c.id) }}"><td data-label="N°">#{{ c.id }}</td><td data-label="Fecha">{{ c.fecha|fecha }}</td>
+      <td data-label="Proveedor">{{ c.proveedor.razon_social }}</td><td data-label="Comprobante" class="ocultar-movil">{{ c.comprobante or '—' }}</td>
+      <td data-label="Productos">{% for d in c.detalles %}{{ d.insumo.nombre }}{{ ', ' if not loop.last }}{% endfor %}</td>
+      <td data-label="Condición">{{ 'Cta. cte.' if c.condicion == 'cuenta_corriente' else 'Contado' }}</td><td data-label="Total" class="num">{{ c.total|moneda }}</td></tr>
+  {% endfor %}</tbody>
+</table></div>
+{{ paginar(paginacion, 'compras.listar', args) }}
+{{ exportar('compras.listar', args) }}
+{% else %}<div class="tarjeta vacio"><p>No hay compras registradas con esos filtros.</p></div>{% endif %}
+{% endblock %}

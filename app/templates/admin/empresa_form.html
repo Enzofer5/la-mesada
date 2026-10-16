@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% from "macros/ui.html" import icono %}
+{% block titulo %}Nueva empresa{% endblock %}
+{% block contenido %}
+<div class="cabecera-pagina"><h1>{{ icono('empresa') }} Nueva empresa</h1><a class="btn" href="{{ url_for('admin.empresas') }}">{{ icono('izq') }} Volver</a></div>
+<form method="post" class="tarjeta form" autocomplete="off">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <p class="subtitulo">Se crea la empresa vacía (con categorías de gasto y unidades de medida estándar) y su usuario propietario. El propietario luego carga sus fincas, cultivos y usuarios.</p>
+  <div class="form-grid">
+    {% for nombre, etiqueta, tipo in [('nombre', 'Nombre de la explotación *', 'text'), ('localidad', 'Localidad', 'text'), ('propietario', 'Nombre del propietario *', 'text'), ('email', 'Email del propietario *', 'email'), ('clave', 'Contraseña inicial *', 'password')] %}
+    <div class="campo {{ 'con-error' if errores.get(nombre) }}"><label>{{ etiqueta }}</label>
+      <input type="{{ tipo }}" name="{{ nombre }}" value="{{ valores.get(nombre, '') if tipo != 'password' else '' }}" {% if tipo == 'password' %}autocomplete="new-password"{% endif %}>
+      {% if errores.get(nombre) %}<p class="error-campo">{{ errores[nombre] }}</p>{% endif %}</div>
+    {% endfor %}
+  </div>
+  <div class="form-acciones"><button class="btn btn-primario btn-grande" type="submit">{{ icono('check') }} Crear empresa</button></div>
+</form>
+{% endblock %}

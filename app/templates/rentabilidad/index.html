@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% from "macros/ui.html" import icono, kpi, filtros_analisis %}
+{% block titulo %}Rentabilidad{% endblock %}
+{% block contenido %}
+<div class="cabecera-pagina">
+  <div><h1>{{ icono('rentabilidad') }} Rentabilidad</h1>
+    <p class="subtitulo">Ingresos − Costos = Ganancia. {{ descripcion }}</p></div>
+  <div class="cabecera-acciones">
+    {% set tipo_rep = {'cultivo': 'rent_cultivo', 'finca': 'rent_finca', 'campana': 'rent_campana', 'campana_cultivo': 'rent_campana', 'finca_cultivo': 'rent_hectarea'}.get(agrupar, 'rent_hectarea') %}
+    <a class="btn" href="{{ url_for('reportes.ver', tipo=tipo_rep, prorratear='1' if prorratear else None, **query) }}">{{ icono('descargar') }} Exportar</a>
+  </div>
+</div>
+{% set extra %}
+<label class="campo"><span>Agrupar</span><select name="agrupar">{% for k, t in agrupaciones.items() %}<option value="{{ k }}" {% if k == agrupar %}selected{% endif %}>{{ t }}</option>{% endfor %}</select></label>
+<label class="check"><input type="checkbox" name="prorratear" value="1" {% if prorratear %}checked{% endif %}> <span>Prorratear gastos generales por hectárea</span></label>
+{% endset %}
+{{ filtros_analisis(url_for('rentabilidad.index'), f, opciones, descripcion, extra_campos=extra, abiertos=True) }}
+
+<div class="kpis">
+  {{ kpi('Ingresos', total.ingresos|moneda, icono_nombre='ingreso') }}
+  {{ kpi('Costos', total.costos|moneda, icono_nombre='gasto') }}
+  {{ kpi('Ganancia', total.ganancia|moneda, ('Margen ' ~ (total.margen|pct)) if total.margen is not none else None, 'kpi-destacado' if total.ganancia >= 0 else 'kpi-negativo', 'rentabilidad') }}
+  {{ kpi('Superficie', total.superficie|num ~ ' ha', icono_nombre='finca') }}
+  {{ kpi('Ganancia por hectárea', total.ganancia_ha|moneda, 'Costo/ha ' ~ (total.costo_ha|moneda), icono_nombre='lotes') }}
+</div>
+
+<section class="tarjeta">
+  <h2>{{ agrupaciones[agrupar] }}</h2>
+  <div class="tabla-contenedor"><table class="tabla tabla-responsive">
+    <thead><tr><th>Grupo</th><th class="num">Ha</th><th class="num">Ingresos</th><th class="num">Costos</th><th class="num">Ganancia</th><th class="num">Margen</th>
+      <th class="num">Costo/ha</th><th class="num">Ingreso/ha</th><th class="num">Ganancia/ha</th><th class="num">Rinde/ha</th><th class="num">Costo/unidad</th><th class="num">Ganancia/unidad</th></tr></thead>
+    <tbody>{% for r in filas %}
+      <tr class="{{ 'fila-sin-asignar' if r.sin_asignar }}">
+        <td data-label="Grupo"><strong>{{ r.nombre }}</strong></td>
+        <td data-label="Ha" class="num">{{ r.superficie|num }}</td>
+        <td data-label="Ingresos" class="num">{{ r.ingresos|moneda }}</td>
+        <td data-label="Costos" class="num">{{ r.costos|moneda }}</td>
+        <td data-label="Ganancia" class="num {{ 'negativo' if r.ganancia < 0 else 'positivo' }}"><strong>{{ r.ganancia|moneda }}</strong></td>
+        <td data-label="Margen" class="num">{{ r.margen|pct }}</td>
+        <td data-label="Costo/ha" class="num">{{ r.costo_ha|moneda }}</td>
+        <td data-label="Ingreso/ha" class="num">{{ r.ingreso_ha|moneda }}</td>
+        <td data-label="Ganancia/ha" class="num">{{ r.ganancia_ha|moneda }}</td>
+        <td data-label="Rinde/ha" class="num">{{ (r.rendimiento_ha|num ~ ' ' ~ r.unidad) if r.rendimiento_ha else '—' }}</td>
+        <td data-label="Costo/unidad" class="num">{{ (r.costo_unidad|moneda ~ '/' ~ r.unidad) if r.costo_unidad else '—' }}</td>
+        <td data-label="Ganancia/unidad" class="num">{{ (r.ganancia_unidad|moneda ~ '/' ~ r.unidad) if r.ganancia_unidad else '—' }}</td>
+      </tr>
+    {% else %}<tr><td colspan="12" class="vacio-texto">No hay datos para los filtros elegidos.</td></tr>{% endfor %}</tbody>
+    <tfoot><tr><td>TOTAL</td><td class="num">{{ total.superficie|num }}</td><td class="num">{{ total.ingresos|moneda }}</td><td class="num">{{ total.costos|moneda }}</td>
+      <td class="num">{{ total.ganancia|moneda }}</td><td class="num">{{ total.margen|pct }}</td><td class="num">{{ total.costo_ha|moneda }}</td><td class="num">{{ total.ingreso_ha|moneda }}</td><td class="num">{{ total.ganancia_ha|moneda }}</td><td></td><td></td><td></td></tr></tfoot>
+  </table></div>
+  {% if not prorratear %}<p class="ayuda">Los gastos sin cultivo asignado (impuestos, servicios, etc.) aparecen como «Sin cultivo (estructura)». Marcá «Prorratear» para repartirlos entre los cultivos según las hectáreas.</p>{% endif %}
+</section>
+
+<h2 style="margin-top:1.5rem">{{ icono('cultivo') }} Costo de producción</h2>
+<div class="grilla-costos">
+{% for b in costos %}
+  <section class="tarjeta">
+    <h2>{{ b.cultivo }}</h2>
+    {% if b.superficie %}<p class="subtitulo">{{ b.superficie|num }} ha{% if b.produccion %} · {{ b.produccion|num }} {{ b.unidad }} comercializables{% endif %}</p>{% endif %}
+    <div class="tabla-contenedor"><table class="tabla">
+      <thead><tr><th>Concepto</th><th class="num">Monto</th><th class="num">%</th>{% if b.cultivo_id %}<th class="num">Por ha</th><th class="num">Por {{ b.unidad }}</th>{% endif %}</tr></thead>
+      <tbody>{% for r in b.filas %}<tr><td>{{ r.categoria }}</td><td class="num">{{ r.monto|moneda }}</td><td class="num">{{ r.pct|pct }}</td>{% if b.cultivo_id %}<td class="num">{{ r.por_ha|moneda }}</td><td class="num">{{ r.por_unidad|moneda }}</td>{% endif %}</tr>{% endfor %}</tbody>
+      <tfoot><tr><td>Costo total</td><td class="num">{{ b.total|moneda }}</td><td class="num">100 %</td>{% if b.cultivo_id %}<td class="num">{{ b.por_ha|moneda }}</td><td class="num">{{ b.por_unidad|moneda }}</td>{% endif %}</tr></tfoot>
+    </table></div>
+  </section>
+{% else %}<p class="vacio-texto">Sin costos en el período.</p>{% endfor %}
+</div>
+{% endblock %}

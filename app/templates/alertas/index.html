@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% from "macros/ui.html" import icono %}
+{% block titulo %}Alertas{% endblock %}
+{% block contenido %}
+<div class="cabecera-pagina">
+  <div><h1>{{ icono('alerta') }} Alertas</h1><p class="subtitulo">Se calculan en el momento con los datos cargados.</p></div>
+  {% if puede_tareas %}<div class="cabecera-acciones"><a class="btn btn-primario" href="{{ url_for('crud.nuevo', key='alertas') }}">{{ icono('mas') }} Nueva tarea o recordatorio</a></div>{% endif %}
+</div>
+<div class="chips">
+  <a class="chip {{ 'activo' if not tipo }}" href="{{ url_for('alertas.index') }}">Todas</a>
+  {% for k, t in nombres.items() %}{% if conteo.get(k) %}<a class="chip {{ 'activo' if tipo == k }}" href="{{ url_for('alertas.index', tipo=k) }}">{{ t }} ({{ conteo[k] }})</a>{% endif %}{% endfor %}
+</div>
+{% for a in alertas %}
+  <a class="alerta-item alerta-{{ a.nivel }}" href="{{ a.url }}">
+    {{ icono({'siembra': 'siembra', 'cosecha': 'cosecha', 'pago': 'factura', 'cobro': 'venta', 'stock': 'stock', 'mantenimiento': 'tractor', 'documento': 'documento', 'tarea': 'tarea'}[a.tipo]) }}
+    <div><strong>{{ a.titulo }}</strong><small>{{ a.detalle }}</small></div>
+  </a>
+{% else %}
+  <div class="tarjeta vacio"><p>{{ icono('check') }} No hay alertas. Todo en orden.</p></div>
+{% endfor %}
+{% endblock %}

@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% from "macros/ui.html" import icono, badge %}
+{% block titulo %}Compra #{{ compra.id }}{% endblock %}
+{% block contenido %}
+<div class="cabecera-pagina">
+  <div><p class="miga"><a href="{{ url_for('compras.listar') }}">Compras</a></p>
+    <h1>{{ icono('compra') }} Compra #{{ compra.id }} · {{ compra.proveedor.razon_social }}</h1></div>
+  <div class="cabecera-acciones">
+    <a class="btn" href="{{ url_for('documentos.subir', entidad='compra', entidad_id=compra.id) }}">{{ icono('documento') }} Adjuntar factura</a>
+    {% if puede_editar %}<a class="btn btn-primario" href="{{ url_for('compras.editar', compra_id=compra.id) }}">{{ icono('editar') }} Editar</a>{% endif %}
+  </div>
+</div>
+<div class="grilla-2">
+  <section class="tarjeta"><h2>Datos</h2>
+    <dl class="datos">
+      <div class="dato"><dt>Fecha</dt><dd>{{ compra.fecha|fecha }}</dd></div>
+      <div class="dato"><dt>Comprobante</dt><dd>{{ compra.comprobante or '—' }}</dd></div>
+      <div class="dato"><dt>Finca</dt><dd>{{ compra.finca.nombre if compra.finca else 'Depósito general' }}</dd></div>
+      <div class="dato"><dt>Condición</dt><dd>{{ 'Cuenta corriente' if compra.condicion == 'cuenta_corriente' else 'Contado' }}</dd></div>
+      <div class="dato"><dt>Total</dt><dd>{{ compra.total|moneda }}</dd></div>
+      {% if cuenta %}<div class="dato"><dt>Cuenta a pagar</dt><dd><a href="{{ url_for('crud.detalle', key='cuentas_pagar', id=cuenta.id) }}">Pendiente {{ cuenta.pendiente|moneda }}</a> {{ badge(cuenta.estado) }}</dd></div>{% endif %}
+      {% if compra.observaciones %}<div class="dato dato-completo"><dt>Observaciones</dt><dd>{{ compra.observaciones }}</dd></div>{% endif %}
+    </dl>
+  </section>
+  <section class="tarjeta"><h2>Productos</h2>
+    <div class="tabla-contenedor"><table class="tabla tabla-responsive">
+      <thead><tr><th>Producto</th><th class="num">Cantidad</th><th class="num">Precio</th><th class="num">Subtotal</th></tr></thead>
+      <tbody>{% for d in compra.detalles %}<tr><td data-label="Producto"><a href="{{ url_for('crud.detalle', key='insumos', id=d.insumo_id) }}">{{ d.insumo.nombre }}</a></td>
+        <td data-label="Cantidad" class="num">{{ d.cantidad|num }} {{ d.insumo.unidad.abreviatura }}</td><td data-label="Precio" class="num">{{ d.precio_unitario|moneda(2) }}</td><td data-label="Subtotal" class="num">{{ d.subtotal|moneda }}</td></tr>{% endfor %}</tbody>
+      <tfoot><tr><td colspan="3">Total</td><td class="num">{{ compra.total|moneda }}</td></tr></tfoot>
+    </table></div>
+  </section>
+</div>
+{% if puede_eliminar %}
+<form method="post" action="{{ url_for('compras.eliminar', compra_id=compra.id) }}" class="zona-peligro" data-confirmar="¿Eliminar la compra? Se descontará del stock.">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-peligro" type="submit">{{ icono('borrar') }} Eliminar compra</button>
+</form>
+{% endif %}
+{% endblock %}

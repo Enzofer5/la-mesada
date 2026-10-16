@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% from "macros/ui.html" import icono, filtros_analisis, exportar %}
+{% block titulo %}{{ titulo }}{% endblock %}
+{% block contenido %}
+<div class="cabecera-pagina">
+  <div><p class="miga"><a href="{{ url_for('reportes.index') }}">Reportes</a> · {{ grupo }}</p>
+    <h1>{{ icono('reporte') }} {{ titulo }}</h1><p class="subtitulo">{{ descripcion }}</p></div>
+</div>
+{% set extra %}{% if usa_prorrateo %}<label class="check"><input type="checkbox" name="prorratear" value="1" {% if prorratear %}checked{% endif %}> <span>Prorratear gastos generales</span></label>{% endif %}{% endset %}
+{{ filtros_analisis(url_for('reportes.ver', tipo=tipo), f, opciones, descripcion, extra_campos=extra, categoria=usa_categoria) }}
+{% set q = dict(query) %}{% if prorratear %}{% set _ = q.update({'prorratear': '1'}) %}{% endif %}
+{{ exportar('reportes.ver', q, {'tipo': tipo}) }}
+
+{% for t in tablas %}
+<section class="tarjeta">
+  {% if t.subtitulo %}<h2>{{ t.subtitulo }}</h2>{% endif %}
+  {% if t.filas_fmt %}
+  <div class="tabla-contenedor"><table class="tabla tabla-responsive">
+    <thead><tr>{% for c in t.columnas %}<th class="{{ 'num' if t.formatos[loop.index0] in ('num', 'moneda', 'pct') }}">{{ c }}</th>{% endfor %}</tr></thead>
+    <tbody>{% for fila in t.filas_fmt %}<tr>{% for v in fila %}{% set fm = t.formatos[loop.index0] %}
+      <td data-label="{{ t.columnas[loop.index0] }}" class="{{ 'num' if fm in ('num', 'moneda', 'pct') }} {{ 'negativo' if fm == 'moneda' and v.startswith('-') }}">{{ v }}</td>{% endfor %}</tr>{% endfor %}</tbody>
+    {% if t.totales_fmt %}<tfoot><tr>{% for v in t.totales_fmt %}<td class="{{ 'num' if t.formatos[loop.index0] in ('num', 'moneda', 'pct') }}">{{ v if v != '—' else '' }}</td>{% endfor %}</tr></tfoot>{% endif %}
+  </table></div>
+  {% else %}<p class="vacio-texto">Sin datos para los filtros elegidos.</p>{% endif %}
+</section>
+{% else %}<div class="tarjeta vacio"><p>Sin datos para los filtros elegidos.</p></div>{% endfor %}
+{% endblock %}

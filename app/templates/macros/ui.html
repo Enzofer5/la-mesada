@@ -1,0 +1,158 @@
+{% macro icono(nombre, clase="") -%}
+<svg class="ic {{ clase }}" aria-hidden="true"><use href="#i-{{ nombre }}"></use></svg>
+{%- endmacro %}
+
+{% macro badge(valor, texto=None) -%}
+<span class="badge badge-{{ valor|string|lower|replace(' ', '_') }}">{{ texto or (valor|string|replace('_', ' ')|capitalize) }}</span>
+{%- endmacro %}
+
+{% macro kpi(titulo, valor, detalle=None, clase="", icono_nombre=None) -%}
+<div class="kpi {{ clase }}">
+  <div class="kpi-titulo">{% if icono_nombre %}{{ icono(icono_nombre) }}{% endif %}{{ titulo }}</div>
+  <div class="kpi-valor">{{ valor }}</div>
+  {% if detalle %}<div class="kpi-detalle">{{ detalle }}</div>{% endif %}
+</div>
+{%- endmacro %}
+
+{% macro paginar(paginacion, endpoint, args, extra={}) -%}
+{% if paginacion and paginacion.pages > 1 %}
+<nav class="paginacion" aria-label="Páginas">
+  {% set base = dict(args.to_dict() if args.to_dict is defined else args) %}
+  {% set _ = base.update(extra) %}
+  {% if paginacion.has_prev %}
+    {% set _ = base.update({'pagina': paginacion.prev_num}) %}
+    <a class="btn btn-sm" href="{{ url_for(endpoint, **base) }}">{{ icono('izq') }} Anterior</a>
+  {% endif %}
+  <span class="pag-info">Página {{ paginacion.page }} de {{ paginacion.pages }} · {{ paginacion.total }} registros</span>
+  {% if paginacion.has_next %}
+    {% set _ = base.update({'pagina': paginacion.next_num}) %}
+    <a class="btn btn-sm" href="{{ url_for(endpoint, **base) }}">Siguiente {{ icono('der') }}</a>
+  {% endif %}
+</nav>
+{% elif paginacion %}
+<p class="pag-info">{{ paginacion.total }} registro{{ 's' if paginacion.total != 1 }}</p>
+{% endif %}
+{%- endmacro %}
+
+{% macro select_simple(nombre, etiqueta, opciones, valor, vacio="Todos", attrs="") -%}
+<label class="campo">
+  <span>{{ etiqueta }}</span>
+  <select name="{{ nombre }}" {{ attrs|safe }}>
+    <option value="">{{ vacio }}</option>
+    {% for op in opciones %}
+      <option value="{{ op[0] }}" {% if op[0]|string == valor|string %}selected{% endif %}>{{ op[1] }}</option>
+    {% endfor %}
+  </select>
+</label>
+{%- endmacro %}
+
+{% macro exportar(endpoint, query, extra={}) -%}
+{% set q = dict(query.to_dict() if query.to_dict is defined else query) %}
+{% set _ = q.update(extra) %}
+{% set _ = q.pop('pagina', None) %}
+<div class="exportar">
+  <span class="exportar-titulo">{{ icono('descargar') }} Exportar:</span>
+  {% for fmt, texto in [('pdf', 'PDF'), ('xlsx', 'Excel'), ('csv', 'CSV')] %}
+    {% set _ = q.update({'exportar': fmt}) %}
+    <a class="btn btn-sm" href="{{ url_for(endpoint, **q) }}">{{ texto }}</a>
+  {% endfor %}
+</div>
+{%- endmacro %}
+
+{# Filtros de análisis: finca, cultivo, campaña, año, desde, hasta (y opcionalmente categoría) #}
+{% macro filtros_analisis(endpoint, f, opciones, descripcion='', extra_campos=None, categoria=False, abiertos=False) -%}
+<details class="panel-filtros" {% if abiertos %}open{% endif %}>
+  <summary>{{ icono('filtro') }} Filtros <span class="filtros-desc">{{ descripcion }}</span></summary>
+  <form method="get" action="{{ endpoint }}" class="filtros-grid">
+    {{ select_simple('finca', 'Finca', opciones.fincas, f.finca, 'Todas') }}
+    {{ select_simple('cultivo', 'Cultivo', opciones.cultivos, f.cultivo, 'Todos') }}
+    {{ select_simple('campana', 'Campaña', opciones.campanas, f.campana, 'Todas') }}
+    {% if categoria %}{{ select_simple('categoria', 'Categoría de gasto', opciones.categorias, f.categoria, 'Todas') }}{% endif %}
+    <label class="campo"><span>Año</span>
+      <select name="anio"><option value="">Todos</option>
+        {% for a in opciones.anios %}<option value="{{ a }}" {% if f.anio == a %}selected{% endif %}>{{ a }}</option>{% endfor %}
+      </select>
+    </label>
+    <label class="campo"><span>Desde</span><input type="date" name="desde" value="{{ f.desde.isoformat() if f.desde and not f.anio else '' }}"></label>
+    <label class="campo"><span>Hasta</span><input type="date" name="hasta" value="{{ f.hasta.isoformat() if f.hasta and not f.anio else '' }}"></label>
+    {% if extra_campos %}{{ extra_campos|safe }}{% endif %}
+    <input type="hidden" name="todo" value="1">
+    <div class="filtros-acciones">
+      <button class="btn btn-primario" type="submit">{{ icono('buscar') }} Aplicar</button>
+      <a class="btn" href="{{ endpoint }}">Limpiar</a>
+    </div>
+  </form>
+</details>
+{%- endmacro %}
+
+{# Campo del formulario genérico #}
+{% macro campo_form(item, valores, errores) -%}
+{% set c = item.c %}
+{% set valor = valores.get(c.nombre, '') %}
+{% set err = errores.get(c.nombre) %}
+<div class="campo {{ 'campo-completo' if c.ancho == 'completo' or c.tipo == 'textarea' }} {{ 'con-error' if err }}" data-campo="{{ c.nombre }}">
+  {% if c.tipo == 'bool' %}
+    <label class="check">
+      <input type="checkbox" name="{{ c.nombre }}" value="1" {% if valor %}checked{% endif %}>
+      <span>{{ c.etiqueta }}</span>
+    </label>
+  {% else %}
+  <label for="f-{{ c.nombre }}">{{ c.etiqueta }}{% if c.requerido %} <b class="req" title="Obligatorio">*</b>{% endif %}</label>
+  {% if c.tipo == 'select' %}
+    <select id="f-{{ c.nombre }}" name="{{ c.nombre }}" {% if c.requerido %}required{% endif %}
+            {% if c.depende %}data-depende="{{ c.depende }}" data-padres="{{ item.padres }}"{% endif %}
+            {% if c.autocompleta %}data-autocompleta="{{ item.extras }}"{% endif %}>
+      <option value="">— Elegir —</option>
+      {% for op in item.opciones %}
+        <option value="{{ op[0] }}" {% if op[0]|string == valor|string %}selected{% endif %}>{{ op[1] }}</option>
+      {% endfor %}
+    </select>
+  {% elif c.tipo == 'choice' %}
+    <select id="f-{{ c.nombre }}" name="{{ c.nombre }}" {% if c.requerido %}required{% endif %}>
+      {% if not c.requerido %}<option value="">— Elegir —</option>{% endif %}
+      {% for op in item.opciones %}
+        <option value="{{ op[0] }}" {% if op[0]|string == valor|string %}selected{% endif %}>{{ op[1] }}</option>
+      {% endfor %}
+    </select>
+  {% elif c.tipo == 'textarea' %}
+    <textarea id="f-{{ c.nombre }}" name="{{ c.nombre }}" rows="3" {% if c.maxlen %}maxlength="{{ c.maxlen }}"{% endif %}>{{ valor }}</textarea>
+  {% elif c.tipo in ('int', 'decimal', 'money') %}
+    <div class="{{ 'con-prefijo' if c.tipo == 'money' }}">
+      {% if c.tipo == 'money' %}<span class="prefijo">$</span>{% endif %}
+      <input id="f-{{ c.nombre }}" name="{{ c.nombre }}" type="text" inputmode="decimal" autocomplete="off"
+             value="{{ valor }}" {% if c.requerido %}required{% endif %} placeholder="{{ c.placeholder or '0' }}" data-numero>
+    </div>
+  {% elif c.tipo == 'date' %}
+    <input id="f-{{ c.nombre }}" name="{{ c.nombre }}" type="date" value="{{ valor }}" {% if c.requerido %}required{% endif %}>
+  {% else %}
+    <input id="f-{{ c.nombre }}" name="{{ c.nombre }}"
+           type="{{ 'email' if c.tipo == 'email' else 'tel' if c.tipo == 'tel' else 'text' }}"
+           value="{{ valor }}" {% if c.requerido %}required{% endif %} {% if c.maxlen %}maxlength="{{ c.maxlen }}"{% endif %}
+           {% if c.placeholder %}placeholder="{{ c.placeholder }}"{% endif %}
+           {% if item.opciones %}list="dl-{{ c.nombre }}" autocomplete="off"{% endif %}>
+    {% if item.opciones %}
+      <datalist id="dl-{{ c.nombre }}">{% for op in item.opciones %}<option value="{{ op[0] }}">{% endfor %}</datalist>
+    {% endif %}
+  {% endif %}
+  {% endif %}
+  {% if err %}<p class="error-campo">{{ err }}</p>{% endif %}
+  {% if c.ayuda %}<p class="ayuda">{{ c.ayuda }}</p>{% endif %}
+</div>
+{%- endmacro %}
+
+{# Gráfico Chart.js: los datos viajan como JSON (no ejecutable) y los dibuja static/js/app.js #}
+{% macro grafico(id, cfg, titulo, nota=None, alto=False) -%}
+<section class="tarjeta">
+  <h2>{{ titulo }}</h2>
+  <div class="grafico {{ 'grafico-alto' if alto }}"><canvas data-grafico="d-{{ id }}" role="img" aria-label="{{ titulo }}"></canvas></div>
+  <script type="application/json" id="d-{{ id }}">{{ cfg|tojson }}</script>
+  {% if cfg.labels %}
+  <details class="tabla-datos"><summary>Ver datos en tabla</summary>
+    <div class="tabla-contenedor"><table class="tabla"><thead><tr><th></th>{% for s in cfg.series %}<th class="num">{{ s.nombre }}</th>{% endfor %}</tr></thead>
+      <tbody>{% for l in cfg.labels %}{% set i = loop.index0 %}<tr><td>{{ l }}</td>{% for s in cfg.series %}<td class="num">{{ (s.datos[i]|moneda) if cfg.moneda else ((s.datos[i]|num) ~ (' ' ~ cfg.unidad if cfg.unidad else '')) }}</td>{% endfor %}</tr>{% endfor %}</tbody>
+    </table></div>
+  </details>
+  {% endif %}
+  {% if nota %}<p class="leyenda-nota">{{ nota }}</p>{% endif %}
+</section>
+{%- endmacro %}

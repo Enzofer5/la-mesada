@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block titulo %}Cambiar contraseña{% endblock %}
+{% block contenido %}
+<section class="tarjeta tarjeta-angosta">
+  <h2>Cambiar mi contraseña</h2>
+  <form method="post" class="form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    {% for nombre, etiqueta, auto in [('actual', 'Contraseña actual', 'current-password'), ('nueva', 'Nueva contraseña', 'new-password'), ('repetir', 'Repetir nueva contraseña', 'new-password')] %}
+    <div class="campo campo-completo {{ 'con-error' if errores.get(nombre) }}">
+      <label for="c-{{ nombre }}">{{ etiqueta }}</label>
+      <input id="c-{{ nombre }}" type="password" name="{{ nombre }}" required autocomplete="{{ auto }}">
+      {% if errores.get(nombre) %}<p class="error-campo">{{ errores[nombre] }}</p>{% endif %}
+    </div>
+    {% endfor %}
+    <p class="ayuda">Mínimo 8 caracteres, con letras y números. Al cambiarla se cierran tus otras sesiones.</p>
+    <div class="form-acciones"><button class="btn btn-primario" type="submit">Guardar</button></div>
+  </form>
+</section>
+{% endblock %}

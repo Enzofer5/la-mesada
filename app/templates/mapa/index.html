@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% from "macros/ui.html" import icono %}
+{% block titulo %}Mapa de lotes{% endblock %}
+{% block body_class %}pagina-mapa{% endblock %}
+{% block head %}
+<meta name="csrf-token" content="{{ csrf_token() }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='vendor/leaflet/leaflet.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='vendor/leaflet/leaflet-geoman.css') }}">
+{% endblock %}
+{% block contenido %}
+<div class="mapa-app">
+  <div class="mapa-barra">
+    <h1>{{ icono('mapa') }} Mapa</h1>
+    <label class="campo campo-inline"><span>Campaña</span>
+      <select id="m-campana">{% for c in config.campanas %}<option value="{{ c.id }}" {% if c.id == config.campana %}selected{% endif %}>{{ c.nombre }}</option>{% endfor %}</select></label>
+    <label class="campo campo-inline"><span>Finca</span>
+      <select id="m-finca"><option value="">Todas</option>{% for f in config.fincas %}<option value="{{ f.id }}" {% if f.id == config.finca %}selected{% endif %}>{{ f.nombre }}</option>{% endfor %}</select></label>
+    <div class="mapa-botones">
+      <button type="button" class="btn btn-sm" id="m-capa" title="Cambiar entre satélite y mapa de calles">{{ icono('lotes') }} <span>Calles</span></button>
+      <button type="button" class="btn btn-sm" id="m-ubicacion" title="Ir a mi ubicación">{{ icono('mapa') }} Mi ubicación</button>
+      {% if config.puedeEditar %}<button type="button" class="btn btn-sm btn-primario" id="m-dibujar">{{ icono('mas') }} Dibujar lote</button>{% endif %}
+    </div>
+  </div>
+  <div class="mapa-cuerpo">
+    <div id="mapa" class="mapa-lienzo" role="application" aria-label="Mapa satelital de lotes"></div>
+    <aside class="mapa-panel" id="m-panel" aria-live="polite"></aside>
+  </div>
+</div>
+<script type="application/json" id="mapa-config">{{ config|tojson }}</script>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='vendor/leaflet/leaflet.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/leaflet/leaflet-geoman.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/mapa.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% from "macros/ui.html" import icono, select_simple %}
+{% block titulo %}Calendario agrícola{% endblock %}
+{% block contenido %}
+<div class="cabecera-pagina"><h1>{{ icono('calendario') }} Calendario agrícola</h1></div>
+<form method="get" class="panel-filtros">
+  <input type="hidden" name="anio" value="{{ anio }}"><input type="hidden" name="mes" value="{{ mes }}">
+  <div class="filtros-grid">
+    {{ select_simple('finca', 'Finca', opciones.fincas, f.finca, 'Todas') }}
+    {{ select_simple('cultivo', 'Cultivo', opciones.cultivos, f.cultivo) }}
+    {{ select_simple('campana', 'Campaña', opciones.campanas, f.campana, 'Todas') }}
+    <div class="filtros-acciones"><button class="btn btn-primario">{{ icono('filtro') }} Filtrar</button><a class="btn" href="{{ url_for('calendario.index', anio=anio, mes=mes) }}">Limpiar</a></div>
+  </div>
+  <div class="chips" style="margin:.75rem 0 0">
+    {% for k, t in tipos.items() %}<label class="chip"><input type="checkbox" name="tipo" value="{{ k }}" {% if not tipos_sel or k in tipos_sel %}checked{% endif %}> {{ t }}</label>{% endfor %}
+  </div>
+</form>
+{% set params = {'finca': f.finca or '', 'cultivo': f.cultivo or '', 'campana': f.campana or ''} %}
+<div class="cal-cabecera">
+  <a class="btn" href="{{ url_for('calendario.index', anio=anterior[0], mes=anterior[1], **params) }}">{{ icono('izq') }} <span class="ocultar-movil">Anterior</span></a>
+  <h2>{{ nombre_mes }} {{ anio }}</h2>
+  <div style="display:flex;gap:.5rem">
+    <a class="btn" href="{{ url_for('calendario.index', **params) }}">Hoy</a>
+    <a class="btn" href="{{ url_for('calendario.index', anio=siguiente[0], mes=siguiente[1], **params) }}"><span class="ocultar-movil">Siguiente</span> {{ icono('der') }}</a>
+  </div>
+</div>
+<div class="calendario">
+  {% for d in ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'] %}<div class="cal-dia-nombre">{{ d }}</div>{% endfor %}
+  {% for semana in semanas %}{% for dia in semana %}
+    {% set evs = por_dia.get(dia.isoformat(), []) %}
+    <div class="cal-dia {{ 'fuera' if dia.month != mes }} {{ 'hoy' if dia == hoy }}">
+      <span class="cal-num">{{ dia.day }}</span>
+      {% for e in evs[:4] %}<a class="evento ev-{{ e.tipo }}" href="{{ e.url }}" title="{{ e.titulo }} {{ e.detalle }}">{{ e.titulo }}</a>{% endfor %}
+      {% if evs|length > 4 %}<span class="cal-mas">+{{ evs|length - 4 }} más</span>{% endif %}
+    </div>
+  {% endfor %}{% endfor %}
+</div>
+<div class="agenda">
+  {% for fecha_iso, evs in por_dia|dictsort %}
+    <div class="agenda-dia"><h3>{{ fecha_iso|fecha('%d/%m') }}</h3>
+      {% for e in evs %}<a class="evento ev-{{ e.tipo }}" href="{{ e.url }}"><strong>{{ e.titulo }}</strong> {{ e.detalle }}</a>{% endfor %}</div>
+  {% else %}<p class="vacio-texto">No hay eventos este mes.</p>{% endfor %}
+</div>
+<div class="leyenda">
+  {% for k, t in tipos.items() %}<span><i class="evento ev-{{ k }}"></i>{{ t }}</span>{% endfor %}
+</div>
+{% endblock %}

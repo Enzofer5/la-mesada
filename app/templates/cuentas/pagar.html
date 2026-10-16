@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% from "macros/ui.html" import icono, badge %}
+{% block titulo %}Registrar pago{% endblock %}
+{% block contenido %}
+<div class="cabecera-pagina">
+  <h1>{{ icono('pago') }} Pagar a {{ cuenta.proveedor.razon_social }}</h1>
+  <a class="btn" href="{{ url_for('crud.detalle', key='cuentas_pagar', id=cuenta.id) }}">{{ icono('izq') }} Volver</a>
+</div>
+<section class="tarjeta tarjeta-angosta">
+  <dl class="datos">
+    <div class="dato"><dt>Comprobante</dt><dd>{{ cuenta.comprobante or '—' }}</dd></div>
+    <div class="dato"><dt>Vence</dt><dd>{{ cuenta.vencimiento|fecha }} {{ badge(cuenta.estado) }}</dd></div>
+    <div class="dato"><dt>Importe</dt><dd>{{ cuenta.importe|moneda }}</dd></div>
+    <div class="dato"><dt>Pendiente</dt><dd><strong>{{ cuenta.pendiente|moneda }}</strong></dd></div>
+  </dl>
+  <form method="post" class="form" style="margin-top:1rem">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="form-grid">
+      <div class="campo"><label>Fecha</label><input type="date" name="fecha" value="{{ hoy.isoformat() }}" required></div>
+      <div class="campo"><label>Monto ($)</label><input type="text" inputmode="decimal" name="monto" value="{{ cuenta.pendiente.normalize() }}" data-numero required></div>
+      <div class="campo"><label>Método</label><select name="metodo_pago">{% for v, t in metodos %}<option value="{{ v }}">{{ t }}</option>{% endfor %}</select></div>
+      <div class="campo"><label>Observaciones</label><input type="text" name="observaciones" maxlength="500"></div>
+    </div>
+    <div class="form-acciones"><button class="btn btn-primario btn-grande" type="submit">{{ icono('check') }} Registrar pago</button></div>
+  </form>
+</section>
+{% endblock %}

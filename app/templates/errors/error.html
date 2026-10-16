@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block titulo %}{{ titulo }}{% endblock %}
+{% block contenido %}
+<section class="tarjeta vacio-grande">
+  <div class="error-codigo">{{ codigo }}</div>
+  <h2>{{ titulo }}</h2>
+  <p>{{ mensaje }}</p>
+  <a class="btn btn-primario" href="{{ url_for('auth.raiz') }}">Volver al inicio</a>
+</section>
+{% endblock %}
+{% block publico %}
+<main class="login"><div class="login-caja">
+  <div class="error-codigo">{{ codigo }}</div><h1>{{ titulo }}</h1><p>{{ mensaje }}</p>
+  <a class="btn btn-primario" href="{{ url_for('auth.login') }}">Ir al inicio</a>
+</div></main>
+{% endblock %}

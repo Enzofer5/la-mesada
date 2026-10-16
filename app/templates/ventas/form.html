@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% from "macros/ui.html" import icono %}
+{% block titulo %}{{ 'Nueva venta' if nueva else 'Editar venta #' ~ venta.id }}{% endblock %}
+{% macro opciones(lista, valor, vacio='— Elegir —', unidad=False) -%}
+<option value="">{{ vacio }}</option>
+{% for op in lista %}<option value="{{ op[0] }}" {% if op[0]|string == valor|string %}selected{% endif %}{% if unidad and op[3] %} data-unidad="{{ op[3].unidad_id }}"{% endif %}>{{ op[1] }}</option>{% endfor %}
+{%- endmacro %}
+{% macro renglon(r) -%}
+<div class="renglon">
+  <label class="campo"><span>Cultivo *</span><select name="cultivo_id">{{ opciones(o.cultivos, r.cultivo_id, unidad=True) }}</select></label>
+  <label class="campo"><span>Unidad *</span><select name="unidad_id">{{ opciones(o.unidades, r.unidad_id) }}</select></label>
+  <label class="campo"><span>Cantidad *</span><input type="text" inputmode="decimal" name="cantidad" value="{{ r.cantidad }}" data-numero></label>
+  <label class="campo"><span>Precio unitario *</span><input type="text" inputmode="decimal" name="precio_unitario" value="{{ r.precio_unitario }}" data-numero></label>
+  <label class="campo"><span>Calidad</span><select name="calidad">{{ opciones(o.calidades, r.calidad) }}</select></label>
+  <div><input type="hidden" name="lote_id" value="{{ r.lote_id or '' }}"><div class="subtotal">$ 0</div>
+    <button type="button" class="btn btn-sm btn-peligro" data-quitar aria-label="Quitar renglón">{{ icono('borrar') }}</button></div>
+</div>
+{%- endmacro %}
+{% block contenido %}
+<div class="cabecera-pagina">
+  <h1>{{ icono('venta') }} {{ 'Nueva venta' if nueva else 'Editar venta #' ~ venta.id }}</h1>
+  <a class="btn" href="{{ url_for('ventas.listar') if nueva else url_for('ventas.detalle', venta_id=venta.id) }}">{{ icono('izq') }} Volver</a>
+</div>
+<form method="post" class="tarjeta form">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="form-grid">
+    <div class="campo"><label>Cliente / comprador <b class="req">*</b></label><select name="cliente_id" required>{{ opciones(o.clientes, request.form.get('cliente_id', venta.cliente_id)) }}</select>
+      <p class="ayuda"><a href="{{ url_for('crud.nuevo', key='clientes') }}">+ Nuevo cliente</a></p></div>
+    <div class="campo"><label>Fecha <b class="req">*</b></label><input type="date" name="fecha" value="{{ request.form.get('fecha', venta.fecha.isoformat() if venta.fecha else '') }}" required></div>
+    <div class="campo"><label>Finca <b class="req">*</b></label><select name="finca_id" required>{{ opciones(o.fincas, request.form.get('finca_id', venta.finca_id)) }}</select></div>
+    <div class="campo"><label>Campaña</label><select name="campana_id">{{ opciones(o.campanas, request.form.get('campana_id', venta.campana_id)) }}</select></div>
+    <div class="campo"><label>Forma de pago <b class="req">*</b></label><select name="forma_pago">{{ opciones(o.formas_pago, request.form.get('forma_pago', venta.forma_pago), '— Elegir —') }}</select></div>
+    <div class="campo"><label>Vencimiento del cobro</label><input type="date" name="fecha_vencimiento_cobro" value="{{ request.form.get('fecha_vencimiento_cobro', venta.fecha_vencimiento_cobro.isoformat() if venta.fecha_vencimiento_cobro else '') }}"></div>
+    <div class="campo"><label>Comprobante</label><input type="text" name="comprobante" maxlength="40" value="{{ request.form.get('comprobante', venta.comprobante or '') }}"></div>
+  </div>
+
+  <h2 style="margin-top:1.2rem">Productos vendidos</h2>
+  <div class="renglones" id="renglones" data-renglones="plantilla-renglon" data-total="total-venta">
+    {% for r in renglones %}{{ renglon(r) }}{% else %}{{ renglon({}) }}{% endfor %}
+  </div>
+  <template id="plantilla-renglon">{{ renglon({}) }}</template>
+  <button type="button" class="btn" data-agregar="renglones" style="margin-top:.6rem">{{ icono('mas') }} Agregar producto</button>
+  <p class="total-form" id="total-venta"></p>
+
+  <details class="seccion-form" {% if venta.transporte or venta.costo_flete %}open{% endif %}>
+    <summary>Transporte y flete</summary>
+    <div class="form-grid">
+      <div class="campo"><label>Transporte</label><input type="text" name="transporte" maxlength="120" value="{{ request.form.get('transporte', venta.transporte or '') }}" placeholder="Ej: Camión propio, flete de Pérez"></div>
+      <div class="campo"><label>Costo del flete ($)</label><input type="text" inputmode="decimal" name="costo_flete" value="{{ request.form.get('costo_flete', venta.costo_flete if venta.costo_flete else '') }}" data-numero></div>
+      <div class="campo"><label>El flete lo paga</label><select name="flete_a_cargo">
+        <option value="comprador" {% if venta.flete_a_cargo != 'vendedor' %}selected{% endif %}>El comprador</option>
+        <option value="vendedor" {% if request.form.get('flete_a_cargo', venta.flete_a_cargo) == 'vendedor' %}selected{% endif %}>Nosotros (se registra como gasto de transporte)</option></select></div>
+    </div>
+  </details>
+  <div class="campo campo-completo" style="margin-top:1rem"><label>Observaciones</label><textarea name="observaciones" rows="2">{{ request.form.get('observaciones', venta.observaciones or '') }}</textarea></div>
+
+  {% if nueva %}
+  <div class="seccion-form" style="padding-top:.75rem">
+    <label class="check"><input type="checkbox" name="cobrar_ahora" value="1" {% if request.form.get('cobrar_ahora') %}checked{% endif %}> <span>Ya se cobró el total (registrar el cobro ahora)</span></label>
+    <div class="campo"><label>Medio de cobro</label><select name="metodo_cobro">{% for v, t in o.metodos_cobro %}<option value="{{ v }}">{{ t }}</option>{% endfor %}</select></div>
+  </div>
+  {% endif %}
+  <div class="form-acciones"><button class="btn btn-primario btn-grande" type="submit">{{ icono('check') }} Guardar venta</button></div>
+</form>
+{% endblock %}

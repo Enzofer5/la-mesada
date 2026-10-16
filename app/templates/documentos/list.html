@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% from "macros/ui.html" import icono, paginar %}
+{% block titulo %}Documentos{% endblock %}
+{% block contenido %}
+<div class="cabecera-pagina">
+  <div><h1>{{ icono('documento') }} Documentos</h1><p class="subtitulo">Facturas, remitos, comprobantes y documentación de vehículos, empleados y fincas.</p></div>
+  {% if puede_subir %}<div class="cabecera-acciones"><a class="btn btn-primario" href="{{ url_for('documentos.subir', entidad=args.get('entidad'), entidad_id=args.get('entidad_id')) }}">{{ icono('mas') }} Subir documento</a></div>{% endif %}
+</div>
+<form method="get" class="panel-filtros"><div class="filtros-grid">
+  <label class="campo"><span>Asociado a</span><select name="entidad"><option value="">Todos</option>
+    {% for k, v in entidades.items() %}<option value="{{ k }}" {% if args.get('entidad') == k %}selected{% endif %}>{{ v[0] }}</option>{% endfor %}</select></label>
+  <label class="campo"><span>Tipo</span><select name="tipo"><option value="">Todos</option>
+    {% for k, v in tipos.items() %}<option value="{{ k }}" {% if args.get('tipo') == k %}selected{% endif %}>{{ v }}</option>{% endfor %}</select></label>
+  <label class="campo"><span>Buscar</span><input type="search" name="q" value="{{ args.get('q', '') }}"></label>
+  <div class="filtros-acciones"><button class="btn btn-primario">{{ icono('buscar') }} Buscar</button><a class="btn" href="{{ url_for('documentos.listar') }}">Limpiar</a></div>
+</div></form>
+{% if paginacion.items %}
+<div class="tabla-contenedor"><table class="tabla tabla-responsive">
+  <thead><tr><th>Documento</th><th>Tipo</th><th>Asociado a</th><th>Fecha</th><th>Vence</th><th></th></tr></thead>
+  <tbody>{% for d in paginacion.items %}
+    <tr><td data-label="Documento"><a href="{{ url_for('documentos.descargar', doc_id=d.id, ver=1) }}" target="_blank" rel="noopener">{{ icono('documento') }} {{ d.nombre }}</a><br><small class="ayuda">{{ d.nombre_original }} · {{ (d.tamanio / 1024)|round|int }} KB</small></td>
+      <td data-label="Tipo">{{ tipos.get(d.tipo_documento, d.tipo_documento) }}</td>
+      <td data-label="Asociado a">{{ entidades[d.entidad][0] if d.entidad in entidades else d.entidad }}{% if d.entidad_id %} #{{ d.entidad_id }}{% endif %}</td>
+      <td data-label="Fecha">{{ d.fecha|fecha }}</td>
+      <td data-label="Vence" class="{{ 'negativo' if d.fecha_vencimiento and d.fecha_vencimiento < hoy }}">{{ d.fecha_vencimiento|fecha }}</td>
+      <td class="acciones-col">
+        <a class="btn btn-sm" href="{{ url_for('documentos.descargar', doc_id=d.id) }}">{{ icono('descargar') }}</a>
+        {% if puede_eliminar %}<form method="post" action="{{ url_for('documentos.eliminar', doc_id=d.id) }}" data-confirmar="¿Eliminar el documento?" style="display:inline">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm btn-peligro" type="submit">{{ icono('borrar') }}</button></form>{% endif %}
+      </td></tr>
+  {% endfor %}</tbody>
+</table></div>
+{{ paginar(paginacion, 'documentos.listar', args) }}
+{% else %}<div class="tarjeta vacio"><p>No hay documentos.</p></div>{% endif %}
+{% endblock %}

@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% from "macros/ui.html" import icono %}
+{% block titulo %}Subir documento{% endblock %}
+{% block contenido %}
+<div class="cabecera-pagina"><h1>{{ icono('documento') }} Subir documento</h1>
+  <a class="btn" href="{{ url_for('documentos.listar') }}">{{ icono('izq') }} Volver</a></div>
+<form method="post" enctype="multipart/form-data" class="tarjeta form">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="form-grid">
+    <div class="campo campo-completo {{ 'con-error' if errores.archivo }}"><label>Archivo <b class="req">*</b></label>
+      <input type="file" name="archivo" required accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx,.xls,.xlsx,.csv,.txt" capture="environment">
+      <p class="ayuda">PDF, foto, Word, Excel. Desde el celular podés sacar la foto directamente.</p>
+      {% if errores.archivo %}<p class="error-campo">{{ errores.archivo }}</p>{% endif %}</div>
+    <div class="campo"><label>Nombre</label><input type="text" name="nombre" maxlength="150" value="{{ valores.get('nombre', '') }}" placeholder="Ej: Factura semillas julio"></div>
+    <div class="campo {{ 'con-error' if errores.tipo_documento }}"><label>Tipo <b class="req">*</b></label>
+      <select name="tipo_documento" required><option value="">— Elegir —</option>{% for v, t in tipos %}<option value="{{ v }}" {% if valores.get('tipo_documento') == v %}selected{% endif %}>{{ t }}</option>{% endfor %}</select>
+      {% if errores.tipo_documento %}<p class="error-campo">{{ errores.tipo_documento }}</p>{% endif %}</div>
+    <div class="campo campo-completo {{ 'con-error' if errores.referencia }}"><label>Asociado a</label>
+      <select name="referencia"><option value="">General (sin asociar)</option>
+        {% for titulo, items in referencias %}<optgroup label="{{ titulo }}">{% for v, t in items %}<option value="{{ v }}" {% if v == preseleccion %}selected{% endif %}>{{ t }}</option>{% endfor %}</optgroup>{% endfor %}
+      </select>{% if errores.referencia %}<p class="error-campo">{{ errores.referencia }}</p>{% endif %}</div>
+    <div class="campo"><label>Fecha</label><input type="date" name="fecha" value="{{ valores.get('fecha', hoy.isoformat()) }}"></div>
+    <div class="campo"><label>Vencimiento (si tiene)</label><input type="date" name="fecha_vencimiento" value="{{ valores.get('fecha_vencimiento', '') }}"><p class="ayuda">Genera una alerta 30 días antes.</p></div>
+    <div class="campo campo-completo"><label>Observaciones</label><textarea name="observaciones" rows="2">{{ valores.get('observaciones', '') }}</textarea></div>
+  </div>
+  <div class="form-acciones"><button class="btn btn-primario btn-grande" type="submit">{{ icono('check') }} Guardar</button></div>
+</form>
+{% endblock %}

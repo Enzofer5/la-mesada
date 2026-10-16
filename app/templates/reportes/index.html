@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% from "macros/ui.html" import icono %}
+{% block titulo %}Reportes{% endblock %}
+{% block contenido %}
+<div class="cabecera-pagina"><div><h1>{{ icono('reporte') }} Reportes</h1>
+  <p class="subtitulo">Todos los reportes se pueden filtrar por finca, cultivo, campaña, año o fechas y exportar a PDF, Excel o CSV.</p></div></div>
+
+<section class="tarjeta">
+  <h2>Preguntas frecuentes</h2>
+  <ul class="preguntas">{% for texto, url in preguntas %}<li><a href="{{ url }}">{{ icono('buscar') }} {{ texto }}</a></li>{% endfor %}</ul>
+</section>
+
+<div class="reportes-grupos">
+{% for grupo, items in reportes.items() %}
+  <section class="tarjeta"><h2>{{ grupo }}</h2>
+    <ul>{% for clave, titulo, _ in items %}<li><a href="{{ url_for('reportes.ver', tipo=clave) }}">{{ titulo }} {{ icono('der') }}</a></li>{% endfor %}</ul>
+  </section>
+{% endfor %}
+</div>
+{% endblock %}

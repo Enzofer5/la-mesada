@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% from "macros/ui.html" import icono, badge, paginar, exportar, select_simple %}
+{% block titulo %}Ventas{% endblock %}
+{% block contenido %}
+<div class="cabecera-pagina">
+  <div><h1>{{ icono('venta') }} Ventas</h1><p class="subtitulo">Ventas de producción con sus cobros. El estado se calcula con los cobros registrados.</p></div>
+  <div class="cabecera-acciones">
+    <a class="btn" href="{{ url_for('crud.listar', key='clientes') }}">{{ icono('cliente') }} Clientes</a>
+    {% if puede('ventas', 'crear') %}<a class="btn btn-primario" href="{{ url_for('ventas.nuevo') }}">{{ icono('mas') }} Nueva venta</a>{% endif %}
+  </div>
+</div>
+<form method="get" class="panel-filtros">
+  <div class="filtros-grid">
+    {{ select_simple('cliente', 'Cliente', o.clientes, args.get('cliente')) }}
+    {{ select_simple('finca', 'Finca', o.fincas, args.get('finca'), 'Todas') }}
+    {{ select_simple('campana', 'Campaña', o.campanas, args.get('campana'), 'Todas') }}
+    {{ select_simple('cultivo', 'Cultivo', o.cultivos, args.get('cultivo')) }}
+    {{ select_simple('estado', 'Estado de cobro', estados, args.get('estado')) }}
+    <label class="campo"><span>Desde</span><input type="date" name="desde" value="{{ args.get('desde', '') }}"></label>
+    <label class="campo"><span>Hasta</span><input type="date" name="hasta" value="{{ args.get('hasta', '') }}"></label>
+    <div class="filtros-acciones"><button class="btn btn-primario" name="buscar" value="1">{{ icono('buscar') }} Buscar</button><a class="btn" href="{{ url_for('ventas.listar') }}">Limpiar</a></div>
+  </div>
+</form>
+{% if not hay_filtro %}
+  <div class="tarjeta vacio"><p>Elegí filtros y tocá <strong>Buscar</strong>.</p><a class="btn" href="{{ url_for('ventas.listar', buscar=1) }}">Ver las últimas ventas</a></div>
+{% else %}
+  <div class="totales"><div class="total-item"><span>Total vendido</span><strong>{{ total|moneda }}</strong></div></div>
+  {% if paginacion.items %}
+  <div class="tabla-contenedor"><table class="tabla tabla-responsive">
+    <thead><tr><th>N°</th><th>Fecha</th><th>Cliente</th><th class="ocultar-movil">Finca</th><th>Productos</th><th class="num">Total</th><th class="num ocultar-movil">Saldo</th><th>Estado</th></tr></thead>
+    <tbody>{% for v in paginacion.items %}
+      <tr data-href="{{ url_for('ventas.detalle', venta_id=v.id) }}">
+        <td data-label="N°">#{{ v.id }}</td><td data-label="Fecha">{{ v.fecha|fecha }}</td><td data-label="Cliente">{{ v.cliente.nombre }}</td>
+        <td data-label="Finca" class="ocultar-movil">{{ v.finca.nombre }}</td>
+        <td data-label="Productos">{% for d in v.detalles %}{{ d.cultivo.nombre }} {{ d.cantidad|num }} {{ d.unidad.abreviatura }}{{ ', ' if not loop.last }}{% endfor %}</td>
+        <td data-label="Total" class="num">{{ v.total|moneda }}</td><td data-label="Saldo" class="num ocultar-movil">{{ v.saldo|moneda }}</td>
+        <td data-label="Estado">{{ badge(v.estado_pago) }}</td>
+      </tr>{% endfor %}</tbody>
+  </table></div>
+  {{ paginar(paginacion, 'ventas.listar', args) }}
+  {{ exportar('ventas.listar', args) }}
+  {% else %}<div class="tarjeta vacio"><p>No hay ventas para los filtros elegidos.</p></div>{% endif %}
+{% endif %}
+{% endblock %}
